@@ -35,11 +35,12 @@ def records(
     start_date, end_date (inclusive)
     """
     for ts in tq(generate_timestamps(start_date, end_date)):
-        for line in open(f"{STREAM_DIR}/{ts}.jsonl", "r"):
-            try:
-                yield json.loads(line.strip())
-            except json.JSONDecodeError:
-                continue
+        with open(f"{STREAM_DIR}/{ts}.jsonl", "r") as file:
+            for line in file:
+                try:
+                    yield json.loads(line.strip())
+                except json.JSONDecodeError:
+                    continue
 
 
 # TODO: Placeholder -- returns random label
