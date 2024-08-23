@@ -1,0 +1,25 @@
+[project]
+name = "bsky-net"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "bertopic>=0.16.3",
+    "python-dotenv>=1.0.1",
+    "llvmlite>=0.43.0",
+    "scikit-learn>=1.5.1",
+    "transformers>=4.44.1",
+    "bsky-net",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = ["ipykernel>=6.29.5"]
+
+[tool.uv.sources]
+opinion-mining = { workspace = true }
+bsky-net = { workspace = true }
