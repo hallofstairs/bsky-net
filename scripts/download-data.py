@@ -5,7 +5,7 @@ import os
 from huggingface_hub import snapshot_download
 
 HF_REPO_ID = "hallofstairs/bluesky"
-TARGET_LOCAL_DIR = "data/raw/test"
+TARGET_LOCAL_DIR = "data/raw/bluesky"
 
 if __name__ == "__main__":
     os.makedirs(TARGET_LOCAL_DIR, exist_ok=True)

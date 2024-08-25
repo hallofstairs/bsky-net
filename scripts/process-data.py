@@ -96,7 +96,7 @@ class UserTimestep(t.TypedDict):
 
 # ===== Main script =====
 
-STREAM_DIR = "./data/raw/stream-2023-07-01"
+STREAM_DIR = "./data/raw/bluesky"
 OUTPUT_DIR = "./data/processed"
 END_DATE = "2023-04-01"  # TODO: Extend this
 

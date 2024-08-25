@@ -6,8 +6,7 @@ from huggingface_hub import upload_folder
 
 HF_REPO_ID = "hallofstairs/bluesky"
 HF_TOKEN = os.getenv("HF_TOKEN")
-# TARGET_LOCAL_DIR = "data/raw/stream-2023-07-01"
-TARGET_LOCAL_DIR = "data/temp"  # TODO: remove
+TARGET_LOCAL_DIR = "data/raw/bluesky"
 
 if __name__ == "__main__":
     print("Uploading bluesky dataset to Hugging Face...")
