@@ -11,6 +11,8 @@ dependencies = [
     "scikit-learn>=1.5.1",
     "transformers>=4.44.1",
     "bsky-net",
+    "matplotlib>=3.9.2",
+    "huggingface-hub>=0.24.6",
 ]
 
 [build-system]
@@ -18,8 +20,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
-dev-dependencies = ["ipykernel>=6.29.5"]
+dev-dependencies = [
+    "ipykernel>=6.29.5",
+    "pyarrow>=17.0.0",
+]
 
 [tool.uv.sources]
-opinion-mining = { workspace = true }
 bsky-net = { workspace = true }
