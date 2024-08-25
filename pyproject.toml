@@ -23,6 +23,7 @@ build-backend = "hatchling.build"
 dev-dependencies = [
     "ipykernel>=6.29.5",
     "pyarrow>=17.0.0",
+    "datasets>=2.21.0",
 ]
 
 [tool.uv.sources]
