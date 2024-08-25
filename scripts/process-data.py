@@ -1,14 +1,16 @@
 """Process raw data stream into a temporal graph that can be used for opinion simulation."""
 
 import json
+import os
 import random
 import typing as t
 from datetime import datetime
+from enum import Enum
 
 from bsky_net import did_from_uri, records
 
 
-class TimeFormat:
+class TimeFormat(Enum):
     hourly = "%Y-%m-%d-%H"
     daily = "%Y-%m-%d"
     weekly = "%Y-%W"
@@ -138,7 +140,7 @@ if __name__ == "__main__":
             post_info = post_ref[post_uri]
 
             # Missing bc it was created outside of the current timestep -- ignore
-            if time_key != get_time_key(post_info["createdAt"], time_period):
+            if time_key != get_time_key(post_info["createdAt"], time_period.value):
                 return
 
             # Missing bc the user didn't follow the author -- add to "consumed"
@@ -168,7 +170,7 @@ if __name__ == "__main__":
         return
 
     for record in records(stream_dir=STREAM_DIR, end_date=END_DATE):
-        time_key = get_time_key(record["createdAt"], time_period)
+        time_key = get_time_key(record["createdAt"], time_period.value)
         record_count += 1
 
         # Initialize time period, if needed
@@ -328,10 +330,13 @@ if __name__ == "__main__":
                 {"did": record["did"], "createdAt": record["createdAt"]}
             )
 
-    with open(f"{OUTPUT_DIR}/engagement-graph-{END_DATE}.json", "w") as f:
-        json.dump(engagement_graph, f, indent=2)
+    # Save data
+    graph_dir = f"{OUTPUT_DIR}/engagement-{time_period.name}-{END_DATE}"
+    os.makedirs(graph_dir, exist_ok=True)
 
-    print(
-        f"Finished processing {record_count} records across {len(engagement_graph)} timesteps."
-    )
-    print(f"Results saved to {OUTPUT_DIR}/engagement-graph-{END_DATE}.json")
+    for time_key, data in engagement_graph.items():
+        with open(f"{graph_dir}/{time_key}.json", "w") as f:
+            json.dump(data, f, indent=2)
+
+    print(f"Processed {record_count} records across {len(engagement_graph)} timesteps.")
+    print(f"Temporal engagement graph saved to {graph_dir}/")
