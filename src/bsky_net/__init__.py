@@ -34,6 +34,10 @@ def records(
 
 
 def did_from_uri(uri: str) -> t.Optional[str]:
+    if not uri:
+        print("\nMisformatted URI (empty string)")
+        return None
+
     try:
         return uri.split("/")[2]
     except Exception:
