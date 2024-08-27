@@ -1,7 +1,5 @@
 # How bsky-net works
 
-> This is a simplified example to illustrate how the benchmark functions in an optimal scenario. There are several caveats and open questions, which I mention below.
-
 The goal here is to more accurately model the _flow of information_ through a social network, in the hopes of improving the simulation and validation of belief dynamics models. This approach improves upon current validation techniques by:
 
 - Explicitly separating actual and perceived beliefs of others
@@ -11,6 +9,8 @@ The goal here is to more accurately model the _flow of information_ through a so
 `bsky-net` uses a newly-available, complete record of the interactions (likes, posts, reposts, follows, blocks, etc) within the Bluesky social network since its inception in Nov. 2022.
 
 ## Structure
+
+> This is a simplified walkthrough to illustrate how the benchmark functions in an optimal scenario. There are several caveats and open questions, which I mention at the end.
 
 The graph is structured as a temporal network, grouped by time steps that aggregate user activity over specific intervals (e.g., hourly, daily, weekly, monthly, etc.). Within each time step, all user activities—such as posts, likes, follows, and other interactions—are collected and processed together.
 
