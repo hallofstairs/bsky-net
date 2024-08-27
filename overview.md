@@ -15,7 +15,7 @@ Concretely, `bsky-net` is a temporal graph dataset of user connections, communic
 This volume and granularity of raw data allows for more a more accurate model of the information flow through the network, including:
 
 - Inherent separation of actual and perceived beliefs of others
-- Anchoring belief updates to actual events, in contrast to arbitrary update intervals
+- Anchoring belief updates to actual interactions, in contrast to arbitrary update intervals
 
 Nevertheless, there are several nontrivial challenges to address, which will be discussed later in this overview.
 
