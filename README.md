@@ -39,13 +39,15 @@ The data structures and algorithms used in this project are _not_ currently opti
 
 ## Data
 
-The data used in this project is available in the `data/raw/` directory. The data is not included in this repository due to size constraints, but it can be downloaded from Hugging Face using the following command:
+The dataset used in this project is too large to be stored within the GitHub repo–it can be found on Hugging Face [here](https://huggingface.co/datasets/hallofstairs/bluesky) and can be downloaded to your local machine using [this script](https://github.com/hallofstairs/bsky-net/blob/main/scripts/upload-data.py).
+
+<!-- The data used in this project is available in the `data/raw/` directory. The data is not included in this repository due to size constraints, but it can be downloaded from Hugging Face using the following command:
 
 TODO
 
 Once you have downloaded the data, you can generate the processed version of the dataset with the following command:
 
-TODO
+TODO -->
 
 If you're interested in crawling the network from scratch yourself, shoot me an email [jetthollister@pm.me](mailto:jetthollister@pm.me) and I'll help you get started.
 
@@ -55,4 +57,4 @@ The `examples/` directory contains several sample notebooks demonstrating the us
 
 - `voter-model.ipynb`: Simple voter model simulation
 
-> **Note:** Make sure you have the necessary data files in the `data/processed/` directory before running the notebooks on your own machine. The data files are not included in this repository due to size constraints.
+> **Note:** Make sure you have the necessary data files in the `data/processed/` directory before running the notebooks on your own machine.
