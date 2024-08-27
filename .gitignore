@@ -9,6 +9,8 @@ __pycache__/
 data/
 stream/
 
+notebooks/
+
 graph_tool/
 
 # C extensions
