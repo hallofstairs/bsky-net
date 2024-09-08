@@ -1,9 +1,25 @@
+import json
 import sys
 import time
+import typing as t
+
+T = t.TypeVar("T")
 
 
-def tq(iterable):
-    total = len(iterable) if isinstance(iterable, list) else 31_000
+class jsonl[T]:
+    @classmethod
+    def iter(cls, path: str) -> t.Generator[T, None, None]:
+        with open(path, "r") as f:
+            for line in f:
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    print(f"JSONDecodeError: {line}")
+                    continue
+
+
+def tq(iterable) -> t.Generator[t.Any, None, None]:
+    total = len(iterable) if isinstance(iterable, list) else 31_000  # lol
     start_time = time.time()
     estimated_time_remaining = 0
 
