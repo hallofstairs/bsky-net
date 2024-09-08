@@ -9,7 +9,7 @@ __pycache__/
 data/
 stream/
 
-notebooks/
+dev/
 
 graph_tool/
 
