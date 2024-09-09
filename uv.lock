@@ -173,7 +173,7 @@ requires-dist = [
     { name = "huggingface-hub", specifier = ">=0.24.6" },
     { name = "llvmlite", specifier = ">=0.43.0" },
     { name = "matplotlib", specifier = ">=3.9.2" },
-    { name = "openai" },
+    { name = "openai", specifier = ">=1.43.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "scikit-learn", specifier = ">=1.5.1" },
     { name = "tiktoken", specifier = ">=0.7.0" },
