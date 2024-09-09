@@ -53,7 +53,7 @@ def records(
     stream_dir: str,
     start_date: str = "2022-11-17",
     end_date: str = "2023-05-01",
-    log: bool = False,
+    log: bool = True,
 ) -> t.Generator[dict[str, t.Any], None, None]:
     """
     Generator that yields records from the stream for the given date range.
