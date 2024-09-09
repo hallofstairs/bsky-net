@@ -14,7 +14,7 @@ from bsky_net.utils import jsonl
 
 # Constants
 EXPERIMENTS_DIR = "../data/experiments"
-TEST_SET_PATH = f"{EXPERIMENTS_DIR}/test-set-v1.jsonl"
+TEST_SET_PATH = f"{EXPERIMENTS_DIR}/test-set-v1-sanitized.jsonl"
 
 START_DATE = "2023-05-25"
 END_DATE = "2023-05-26"
@@ -47,16 +47,17 @@ class SystemPrompts(Enum):
     # Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
     # Class: 0"""
 
-    # Current winner
     v2 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
 
 Examples:
 Text: "Woah this is really smart. I assumed they would drop the invites, but this makes trust and safety easier."
 Class: 1
 
+Text: "I've seen that Alice chick 4 times now. \n\nJust bury her and block. I thought that was the plan here"
+Class: 1
+
 Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
-Class: 0
-"""
+Class: 0"""
 
     #     v3 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team. Carefully read the post and determine if it mentions or alludes to Bluesky's moderation policies or the development team's role in moderation. Consider both explicit references and implicit discussions that might be related to content moderation on the platform.
 
@@ -98,8 +99,7 @@ Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or wit
 Class: 0
 
 Text: "if a jice is spilled in the woods and there's no mods around to help, does it make a sound?"
-Class: 0
-"""
+Class: 0"""
 
     v6 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
 
@@ -114,6 +114,22 @@ Text: "I think I\u2019ve been on here a month with zero invite codes bluesky mod
 Class: 0
 
 Text: "Holy shit the process for changing address with USPS has gotten bad."
+Class: 0"""
+
+    # Best so far
+    v7 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
+
+Examples:
+Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
+Class: 1
+
+Text: "I've seen that Alice chick 4 times now. \n\nJust bury her and block. I thought that was the plan here"
+Class: 1
+
+Text: "I think I\u2019ve been on here a month with zero invite codes bluesky mods hate me"
+Class: 0
+
+Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
 Class: 0"""
 
 
@@ -137,7 +153,7 @@ class Result(t.TypedDict):
 
 # Run experiments
 
-EXPERIMENT_NAME = "test-6"
+EXPERIMENT_NAME = "test-sanitized"
 
 experiment_dir = f"{EXPERIMENTS_DIR}/{EXPERIMENT_NAME}"
 if os.path.exists(experiment_dir):
