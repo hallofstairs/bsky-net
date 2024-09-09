@@ -11,8 +11,8 @@ from bsky_net import Post, records
 STREAM_DIR = "data/raw/stream-2023-07-01"
 EXPERIMENTS_DIR = "data/experiments"
 
-START_DATE = "2023-05-25"
-END_DATE = "2023-05-26"
+START_DATE = "2023-05-24"
+END_DATE = "2023-05-30"
 
 KEYWORDS = [
     " moderation",
@@ -113,7 +113,7 @@ last_date = ""
 
 
 for record in records(
-    stream_dir=STREAM_DIR, start_date="2023-05-24", end_date="2023-05-30", log=False
+    stream_dir=STREAM_DIR, start_date=START_DATE, end_date=END_DATE, log=False
 ):
     if record["$type"] == "app.bsky.feed.post":
         post = Post(**record)  # TODO: Fix $type in __init__.py
