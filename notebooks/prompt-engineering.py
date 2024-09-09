@@ -3,6 +3,8 @@
 import json
 import math
 import os
+import typing as t
+from collections import Counter
 from enum import Enum
 
 from openai import OpenAI
@@ -26,35 +28,56 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 def make_prompt(post: Post):
     return f"""Classify the following:
 Text: "{post["text"]}"
-Topic:"""
+Class:"""
 
 
 class SystemPrompts(Enum):
-    v1 = """"""
-    v2 = """"""
+    v0 = """On the Bluesky social network, there was a user named Alice that started posting hateful content inside of a long thread called "hellthread". This triggered a conversation about Bluesky's moderation policies. Your goal is to identify any posts that are talking about the Bluesky team's response to the event or their general moderation policies on the platform. If relevant, respond with "1". If not relevant, respond with "0".
+"""
+
+    v1 = """On the Bluesky social network, there was a user named Alice that started posting hateful content inside of a long thread called "hellthread". This triggered a conversation about Bluesky's moderation policies. Your goal is to identify any posts that are talking about the Bluesky team's response to the event or their general moderation policies on the platform. If relevant, respond with "1". If not relevant, respond with "0".
+
+Examples:
+Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
+Class: 1
+
+Text: "Woah this is really smart. I assumed they would drop the invites, but this makes trust and safety easier."
+Class: 1
+
+Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
+Class: 0"""
+
+
+class Entry(Post):
+    classification: int
+
+
+class Result(t.TypedDict):
+    text: str
+    classification: int
+    probability: float
+    uri: str
+    correct: bool
 
 
 # %% Run experiments
 
-EXPERIMENT_NAME = ""
+
+EXPERIMENT_NAME = "first-test"
+
+experiment_dir = f"{EXPERIMENTS_DIR}/{EXPERIMENT_NAME}"
+if os.path.exists(experiment_dir):
+    raise FileExistsError(f"Experiment directory '{experiment_dir}' already exists!")
+os.mkdir(experiment_dir)
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Check if folder exists, if exists, raise exception (don't override experiments)
-os.mkdir(f"{EXPERIMENTS_DIR}/{EXPERIMENT_NAME}")
+# TODO: Add correct classification to test set
 
 for system_prompt in SystemPrompts:
-    total_posts = 0
+    results = Counter()
 
-    for post in jsonl[Post].iter(TEST_SET_PATH):
-        # Ignore replies (for now)
-        if "reply" in post and post["reply"]:
-            continue
-
-        # Ignore embeds (for now)
-        if "embed" in post and post["embed"]:
-            continue
-
+    for post in jsonl[Entry].iter(TEST_SET_PATH):
         res = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -66,29 +89,72 @@ for system_prompt in SystemPrompts:
         )
 
         classification = res.choices[0].message.content
+        logprobs = res.choices[0].logprobs
 
         if not classification:
             print("No classification")
             continue
 
-        topic = classification.strip().lower()
-        logprobs = res.choices[0].logprobs
+        if not logprobs or not logprobs.content:
+            raise ValueError("No logprobs")
 
-        probability = (
-            math.exp(logprobs.content[0].logprob)
-            if logprobs and logprobs.content
-            else -1
-        )
+        pred = int(classification.strip().lower())
+        correct = post["classification"] == pred
 
-        log_entry = {
+        log_entry: Result = {
             "text": post["text"],
-            "classification": topic,
-            "probability": probability,
+            "classification": pred,
+            "probability": math.exp(logprobs.content[0].logprob),
             "uri": post["uri"],
+            "correct": correct,
         }
 
-        with open(
-            f"{EXPERIMENTS_DIR}/{EXPERIMENT_NAME}/{system_prompt.value}.jsonl", "a"
-        ) as log_file:
+        if correct:
+            if pred == 1:
+                results["tp"] += 1
+            else:
+                results["tn"] += 1
+        else:
+            if pred == 1:
+                results["fp"] += 1
+            else:
+                results["fn"] += 1
+
+        results["total"] += 1
+
+        with open(f"{experiment_dir}/{system_prompt.name}.jsonl", "a") as log_file:
             json.dump(log_entry, log_file)
             log_file.write("\n")
+
+    with open(f"{experiment_dir}/results.txt", "a+") as results_file:
+        results_file.seek(0, 2)
+        if results_file.tell() > 0:
+            results_file.write("\n")
+
+        tp = results["tp"]
+        tn = results["tn"]
+        fp = results["fp"]
+        fn = results["fn"]
+        total = results["total"]
+
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1_score = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall) > 0
+            else 0
+        )
+        accuracy = (tp + tn) / total if total > 0 else 0
+
+        results_file.write(
+            f"{system_prompt.name}:\n\n"
+            f"Confusion Matrix:\n"
+            f"    TP: {tp:<4} | FP: {fp:<4}\n"
+            f"    FN: {fn:<4} | TN: {tn:<4}\n\n"
+            f"Total: {total}\n\n"
+            f"Metrics:\n"
+            f"    Precision: {precision:.4f}\n"
+            f"    Recall:    {recall:.4f}\n"
+            f"    F1 Score:  {f1_score:.4f}\n"
+            f"    Accuracy:  {accuracy:.4f}\n"
+        )
