@@ -32,10 +32,60 @@ Class:"""
 
 
 class SystemPrompts(Enum):
-    v0 = """On the Bluesky social network, there was a user named Alice that started posting hateful content inside of a long thread called "hellthread". This triggered a conversation about Bluesky's moderation policies. Your goal is to identify any posts that are talking about the Bluesky team's response to the event or their general moderation policies on the platform. If relevant, respond with "1". If not relevant, respond with "0".
+    #     v0 = """On the Bluesky social network, there was a user named Alice that started posting hateful content inside of a long thread called "hellthread". This triggered a conversation about Bluesky's moderation policies. Your goal is to identify any posts that are talking about the Bluesky team's response to the event or their general moderation policies on the platform. If relevant, respond with "1". If not relevant, respond with "0".
+    # """
+
+    #     v1 = """On the Bluesky social network, there was a user named Alice that started posting hateful content inside of a long thread called "hellthread". This triggered a conversation about Bluesky's moderation policies. Your goal is to identify any posts that are talking about the Bluesky team's response to the event or their general moderation policies on the platform. If relevant, respond with "1". If not relevant, respond with "0".
+
+    # Examples:
+    # Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
+    # Class: 1
+
+    # Text: "Woah this is really smart. I assumed they would drop the invites, but this makes trust and safety easier."
+    # Class: 1
+
+    # Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
+    # Class: 0"""
+
+    # Current winner
+    v2 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
+
+Examples:
+Text: "Woah this is really smart. I assumed they would drop the invites, but this makes trust and safety easier."
+Class: 1
+
+Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
+Class: 0
 """
 
-    v1 = """On the Bluesky social network, there was a user named Alice that started posting hateful content inside of a long thread called "hellthread". This triggered a conversation about Bluesky's moderation policies. Your goal is to identify any posts that are talking about the Bluesky team's response to the event or their general moderation policies on the platform. If relevant, respond with "1". If not relevant, respond with "0".
+    #     v3 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team. Carefully read the post and determine if it mentions or alludes to Bluesky's moderation policies or the development team's role in moderation. Consider both explicit references and implicit discussions that might be related to content moderation on the platform.
+
+    # Provide only your final classification. The classification should be either "1" if the post references moderation policies or the development team's role in moderation, or "0" if it does not. Do not include any other text in your response.
+
+    # Examples:
+    # Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
+    # Class: 1
+
+    # Text: "Woah this is really smart. I assumed they would drop the invites, but this makes trust and safety easier."
+    # Class: 1
+
+    # Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
+    # Class: 0
+    #     """
+
+    v4 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
+
+Examples:
+Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
+Class: 1
+
+Text: "I've seen that Alice chick 4 times now. \n\nJust bury her and block. I thought that was the plan here"
+Class: 1
+
+Text: "I think I\u2019ve been on here a month with zero invite codes bluesky mods hate me"
+Class: 0"""
+
+    v5 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
 
 Examples:
 Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
@@ -45,13 +95,32 @@ Text: "Woah this is really smart. I assumed they would drop the invites, but thi
 Class: 1
 
 Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
+Class: 0
+
+Text: "if a jice is spilled in the woods and there's no mods around to help, does it make a sound?"
+Class: 0
+"""
+
+    v6 = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
+
+Examples:
+Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
+Class: 1
+
+Text: "I've seen that Alice chick 4 times now. \n\nJust bury her and block. I thought that was the plan here"
+Class: 1
+
+Text: "I think I\u2019ve been on here a month with zero invite codes bluesky mods hate me"
+Class: 0
+
+Text: "Holy shit the process for changing address with USPS has gotten bad."
 Class: 0"""
 
 
 class Models(Enum):
     GPT_4O_MINI = "gpt-4o-mini"
-    GPT_4O = "gpt-4o"
-    GPT_3_5_TURBO = "gpt-3.5-turbo"
+    # GPT_4O = "gpt-4o"
+    # GPT_3_5_TURBO = "gpt-3.5-turbo"
 
 
 class Entry(Post):
@@ -66,10 +135,9 @@ class Result(t.TypedDict):
     correct: bool
 
 
-# %% Run experiments
+# Run experiments
 
-
-EXPERIMENT_NAME = "first-test"
+EXPERIMENT_NAME = "test-6"
 
 experiment_dir = f"{EXPERIMENTS_DIR}/{EXPERIMENT_NAME}"
 if os.path.exists(experiment_dir):
@@ -103,7 +171,13 @@ for model in Models:
             if not logprobs or not logprobs.content:
                 raise ValueError("No logprobs")
 
-            pred = int(classification.strip().lower())
+            if "1" in classification:
+                pred = 1
+            elif "0" in classification:
+                pred = 0
+            else:
+                pred = -1
+
             correct = post["classification"] == pred
 
             log_entry: Result = {
