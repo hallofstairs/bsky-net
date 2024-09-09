@@ -50,14 +50,17 @@ def generate_timestamps(start_date: str, end_date: str) -> list[str]:
 
 
 def records(
-    stream_dir: str, start_date: str = "2022-11-17", end_date: str = "2023-05-01"
+    stream_dir: str,
+    start_date: str = "2022-11-17",
+    end_date: str = "2023-05-01",
+    log: bool = False,
 ) -> t.Generator[dict[str, t.Any], None, None]:
     """
     Generator that yields records from the stream for the given date range.
 
     End date is inclusive.
     """
-    for ts in tq(generate_timestamps(start_date, end_date)):
+    for ts in tq(generate_timestamps(start_date, end_date), active=log):
         with open(f"{stream_dir}/{ts}.jsonl", "r") as file:
             for line in file:
                 try:
