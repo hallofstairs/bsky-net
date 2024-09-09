@@ -8,8 +8,8 @@ from bsky_net import Post, records
 
 # %% Constants
 
-STREAM_DIR = "../data/raw/stream-2023-07-01"
-EXPERIMENTS_DIR = "../data/experiments"
+STREAM_DIR = "data/raw/stream-2023-07-01"
+EXPERIMENTS_DIR = "data/experiments"
 
 START_DATE = "2023-05-25"
 END_DATE = "2023-05-26"
@@ -106,9 +106,14 @@ SAMPLE_PCT = 0.10
 total_posts = 0
 last_date = ""
 
+# censoring my cum posts
+# 11 label
+# i wish death upon anyone who would ban me for this skeet
+# I propose a permanent ban on magicians for disinformation
+
 
 for record in records(
-    stream_dir=STREAM_DIR, start_date="2023-05-24", end_date="2023-05-30"
+    stream_dir=STREAM_DIR, start_date="2023-05-24", end_date="2023-05-30", log=False
 ):
     if record["$type"] == "app.bsky.feed.post":
         post = Post(**record)  # TODO: Fix $type in __init__.py
@@ -127,14 +132,31 @@ for record in records(
         ]:
             continue
 
-        # TODO: Hardcode certain URIs to include
         if kw_regex.search(post["text"].lower()):
             if post["uri"] in HARDCODED_URIS or random.random() <= SAMPLE_PCT:
+                print("\033[H\033[J", end="")  # Clear the entire screen
+                print(f"Text:\n\n{post['text']}\n")
+                while True:
+                    try:
+                        user_input = input(
+                            "Class (0 or 1, press Enter for 1): "
+                        ).strip()
+                        if user_input == "":
+                            classification = 1
+                        else:
+                            classification = int(user_input)
+                        if classification not in [0, 1]:
+                            raise ValueError("Input must be 0 or 1")
+                        break
+                    except ValueError:
+                        print("Invalid input. Please enter 0, 1, or press Enter for 1.")
+
                 with open(f"{EXPERIMENTS_DIR}/test-set.jsonl", "a") as log_file:
-                    json.dump(post, log_file)
+                    json.dump({**post, "classification": classification}, log_file)
                     log_file.write("\n")
 
                 total_posts += 1
                 last_date = post["createdAt"]
 
-print(total_posts)
+
+print("Total posts:", total_posts)
