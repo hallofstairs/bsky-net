@@ -14,7 +14,7 @@ from bsky_net.utils import jsonl
 
 # Constants
 EXPERIMENTS_DIR = "../data/experiments"
-TEST_SET_PATH = f"{EXPERIMENTS_DIR}/test-set.jsonl"
+TEST_SET_PATH = f"{EXPERIMENTS_DIR}/test-set-v1.jsonl"
 
 START_DATE = "2023-05-25"
 END_DATE = "2023-05-26"
@@ -48,6 +48,12 @@ Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or wit
 Class: 0"""
 
 
+class Models(Enum):
+    GPT_4O_MINI = "gpt-4o-mini"
+    GPT_4O = "gpt-4o"
+    GPT_3_5_TURBO = "gpt-3.5-turbo"
+
+
 class Entry(Post):
     classification: int
 
@@ -72,89 +78,103 @@ os.mkdir(experiment_dir)
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# TODO: Add correct classification to test set
+for model in Models:
+    for system_prompt in SystemPrompts:
+        results = Counter()
 
-for system_prompt in SystemPrompts:
-    results = Counter()
+        for post in jsonl[Entry].iter(TEST_SET_PATH):
+            res = client.chat.completions.create(
+                model=model.value,
+                messages=[
+                    {"role": "system", "content": system_prompt.value},
+                    {"role": "user", "content": make_prompt(post)},
+                ],
+                logprobs=True,
+                temperature=0.0,
+            )
 
-    for post in jsonl[Entry].iter(TEST_SET_PATH):
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt.value},
-                {"role": "user", "content": make_prompt(post)},
-            ],
-            logprobs=True,
-            temperature=0.0,
-        )
+            classification = res.choices[0].message.content
+            logprobs = res.choices[0].logprobs
 
-        classification = res.choices[0].message.content
-        logprobs = res.choices[0].logprobs
+            if not classification:
+                print("No classification")
+                continue
 
-        if not classification:
-            print("No classification")
-            continue
+            if not logprobs or not logprobs.content:
+                raise ValueError("No logprobs")
 
-        if not logprobs or not logprobs.content:
-            raise ValueError("No logprobs")
+            pred = int(classification.strip().lower())
+            correct = post["classification"] == pred
 
-        pred = int(classification.strip().lower())
-        correct = post["classification"] == pred
+            log_entry: Result = {
+                "text": post["text"],
+                "classification": pred,
+                "probability": math.exp(logprobs.content[0].logprob),
+                "uri": post["uri"],
+                "correct": correct,
+            }
 
-        log_entry: Result = {
-            "text": post["text"],
-            "classification": pred,
-            "probability": math.exp(logprobs.content[0].logprob),
-            "uri": post["uri"],
-            "correct": correct,
-        }
-
-        if correct:
-            if pred == 1:
-                results["tp"] += 1
+            if correct:
+                if pred == 1:
+                    results["tp"] += 1
+                else:
+                    results["tn"] += 1
             else:
-                results["tn"] += 1
-        else:
-            if pred == 1:
-                results["fp"] += 1
-            else:
-                results["fn"] += 1
+                if pred == 1:
+                    results["fp"] += 1
+                else:
+                    results["fn"] += 1
 
-        results["total"] += 1
+            results["total"] += 1
 
-        with open(f"{experiment_dir}/{system_prompt.name}.jsonl", "a") as log_file:
-            json.dump(log_entry, log_file)
-            log_file.write("\n")
+            if not correct:
+                incorrect_entry = {
+                    "text": post["text"],
+                    "predicted": pred,
+                    "actual": post["classification"],
+                    "probability": math.exp(logprobs.content[0].logprob),
+                    "uri": post["uri"],
+                }
+                with open(
+                    f"{experiment_dir}/{model.name}-{system_prompt.name}-incorrect.jsonl",
+                    "a",
+                ) as incorrect_file:
+                    json.dump(incorrect_entry, incorrect_file)
+                    incorrect_file.write("\n")
 
-    with open(f"{experiment_dir}/results.txt", "a+") as results_file:
-        results_file.seek(0, 2)
-        if results_file.tell() > 0:
-            results_file.write("\n")
+            with open(
+                f"{experiment_dir}/{model.name}-{system_prompt.name}.jsonl", "a"
+            ) as log_file:
+                json.dump(log_entry, log_file)
+                log_file.write("\n")
 
-        tp = results["tp"]
-        tn = results["tn"]
-        fp = results["fp"]
-        fn = results["fn"]
-        total = results["total"]
+        with open(f"{experiment_dir}/results.txt", "a+") as results_file:
+            results_file.seek(0, 2)
+            if results_file.tell() > 0:
+                results_file.write("\n")
 
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        f1_score = (
-            2 * precision * recall / (precision + recall)
-            if (precision + recall) > 0
-            else 0
-        )
-        accuracy = (tp + tn) / total if total > 0 else 0
+            tp = results["tp"]
+            tn = results["tn"]
+            fp = results["fp"]
+            fn = results["fn"]
+            total = results["total"]
 
-        results_file.write(
-            f"{system_prompt.name}:\n\n"
-            f"Confusion Matrix:\n"
-            f"    TP: {tp:<4} | FP: {fp:<4}\n"
-            f"    FN: {fn:<4} | TN: {tn:<4}\n\n"
-            f"Total: {total}\n\n"
-            f"Metrics:\n"
-            f"    Precision: {precision:.4f}\n"
-            f"    Recall:    {recall:.4f}\n"
-            f"    F1 Score:  {f1_score:.4f}\n"
-            f"    Accuracy:  {accuracy:.4f}\n"
-        )
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            f1_score = (
+                2 * precision * recall / (precision + recall)
+                if (precision + recall) > 0
+                else 0
+            )
+            accuracy = (tp + tn) / total if total > 0 else 0
+
+            results_file.write(
+                f"{model.name} - {system_prompt.name}:\n\n"
+                f"TP: {tp:<2} ({tp/total:.2%}) | FP: {fp:<2} ({fp/total:.2%})\n"
+                f"FN: {fn:<2} ({fn/total:.2%}) | TN: {tn:<2} ({tn/total:.2%})\n\n"
+                f"Precision: {precision:.4f}\n"
+                f"Recall:    {recall:.4f}\n"
+                f"F1 Score:  {f1_score:.4f}\n"
+                f"Accuracy:  {accuracy:.4f}\n"
+                f"{'=' * 20}"
+            )
