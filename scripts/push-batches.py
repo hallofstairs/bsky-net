@@ -80,11 +80,10 @@ while True:
 
     # Batch completed
     if batch_info.completed_at:
-        print(
-            f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} UTC] "
-            f"Batch {idx} completed in {batch_info.completed_at - batch_info.created_at} seconds. Saving results..."
-        )
-        output = client.files.content(batch_info.id)
+        if not batch_info.output_file_id:
+            raise ValueError("Batch output file ID not found.")
+
+        output = client.files.content(batch_info.output_file_id)
 
         with open(f"{BATCH_DIR}/{BATCH_DESCRIPTION}/out/{idx}.jsonl", "w") as f:
             f.write(output.text)
