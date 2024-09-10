@@ -30,7 +30,9 @@ def batch_in_progress() -> tuple[Batch, int] | None:
     """Check if there are any batches in progress."""
     batches = client.batches.list().data
     for batch in batches:
-        if batch.status == "in_progress" and isinstance(batch.metadata, dict):
+        if (
+            batch.status == "in_progress" or batch.status == "finalizing"
+        ) and isinstance(batch.metadata, dict):
             return batch, int(batch.metadata.get("description", "")[-1])
 
     return None
