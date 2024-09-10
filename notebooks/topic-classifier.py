@@ -174,9 +174,12 @@ while True:
     batch_info = client.batches.retrieve(batch.id)
 
     if batch_info.completed_at:
-        output = client.files.content(batch_info.id)
+        if not batch_info.output_file_id:
+            raise ValueError("Batch output file ID not found.")
 
-        with open(f"{BATCH_DIR}/{BATCH_DESCRIPTION}/output-{idx}.jsonl", "w") as f:
+        output = client.files.content(batch_info.output_file_id)
+
+        with open(f"{BATCH_DIR}/{BATCH_DESCRIPTION}/out/{idx}.jsonl", "w") as f:
             f.write(output.text)
 
         print(f"Batch {idx} completed and results saved.")
@@ -184,6 +187,20 @@ while True:
         idx += 1
 
     time.sleep(60)
+
+# %%
+
+_id = "batch_08fP4pyK3U8JClMRKHgoK6Q1"
+
+batch_info = client.batches.retrieve(_id)
+
+if not batch_info.output_file_id:
+    raise ValueError("Batch output file ID not found.")
+
+output = client.files.content(batch_info.output_file_id)
+
+with open(f"{BATCH_DIR}/{BATCH_DESCRIPTION}/out/2.jsonl", "w") as f:
+    f.write(output.text)
 
 # %%
 
