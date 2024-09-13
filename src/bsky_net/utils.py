@@ -18,7 +18,7 @@ class jsonl[T]:
                     continue
 
 
-def tq(iterable: t.Iterable, active: bool = True) -> t.Generator[t.Any, None, None]:
+def tq(iterable: t.Iterable[T], active: bool = True) -> t.Generator[T, None, None]:
     total = len(iterable) if isinstance(iterable, list) else 31_000  # lol
     start_time = time.time()
     estimated_time_remaining = 0
