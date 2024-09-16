@@ -1,17 +1,60 @@
 import json
+import sys
+import time
 import typing as t
-from datetime import datetime, timedelta
 
-from bsky_net.utils import tq
+T = t.TypeVar("T")
 
 
-class Post(t.TypedDict):
-    did: str
-    uri: str
-    text: str
-    createdAt: str
-    reply: t.Optional[dict[str, dict]]
-    embed: t.Optional[dict[str, t.Any]]
+class jsonl[T]:
+    @classmethod
+    def iter(cls, path: str) -> t.Generator[T, None, None]:
+        with open(path, "r") as f:
+            for line in f:
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    print(f"JSONDecodeError: {line}")
+                    continue
+
+
+def tq(iterable: t.Iterable[T], active: bool = True) -> t.Generator[T, None, None]:
+    total = len(iterable) if isinstance(iterable, t.Sized) else None
+
+    start_time = time.time()
+    estimated_time_remaining = 0
+
+    for i, item in enumerate(iterable):
+        if active:
+            if total:
+                elapsed_time = time.time() - start_time
+                items_per_second = (i + 1) / elapsed_time if elapsed_time > 0 else 0
+                estimated_time_remaining = (
+                    (total - i - 1) / items_per_second if items_per_second > 0 else 0
+                )
+                sys.stdout.write(
+                    f"\r{i+1}/{total} ({((i+1)/total)*100:.2f}%) - {estimated_time_remaining/60:.1f}m until done"
+                )
+                sys.stdout.flush()
+            else:
+                sys.stdout.write(f"\r{i+1}")
+                sys.stdout.flush()
+
+        yield item
+
+
+Post = t.TypedDict(
+    "Post",
+    {
+        "$type": t.Literal["app.bsky.feed.post"],
+        "did": str,
+        "uri": str,
+        "text": str,
+        "createdAt": str,
+        "reply": t.Optional[dict[str, dict]],
+        "embed": t.Optional[dict[str, t.Any]],
+    },
+)
 
 
 class Follow(t.TypedDict):
@@ -38,19 +81,8 @@ class UserTimestep(t.TypedDict):
     consumed: dict[str, Impression]  # All observations for this user during time period
 
 
-def generate_timestamps(start_date: str, end_date: str) -> list[str]:
-    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    delta = end_dt - start_dt
-
-    return [
-        (start_dt + timedelta(days=i)).strftime("%Y-%m-%d")
-        for i in range(delta.days + 1)
-    ]
-
-
 def records(
-    stream_dir: str,
+    stream_path: str,
     start_date: str = "2022-11-17",
     end_date: str = "2023-05-01",
     log: bool = True,
@@ -60,13 +92,9 @@ def records(
 
     End date is inclusive.
     """
-    for ts in tq(generate_timestamps(start_date, end_date), active=log):
-        with open(f"{stream_dir}/{ts}.jsonl", "r") as file:
-            for line in file:
-                try:
-                    yield json.loads(line.strip())
-                except json.JSONDecodeError:
-                    continue
+    for record in tq(jsonl[t.Any].iter(stream_path), active=log):
+        if record["createdAt"] >= start_date and record["createdAt"] <= end_date:
+            yield record
 
 
 def did_from_uri(uri: str) -> t.Optional[str]:
