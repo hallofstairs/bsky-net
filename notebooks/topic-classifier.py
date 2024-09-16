@@ -71,7 +71,7 @@ batch_size = 0
 total_tokens = 0
 
 # Create batch files based on limits
-for record in records(stream_dir=STREAM_DIR, start_date=START_DATE, end_date=END_DATE):
+for record in records(start_date=START_DATE, end_date=END_DATE):
     if record["$type"] == "app.bsky.feed.post":
         post: Post = record
 

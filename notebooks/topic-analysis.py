@@ -8,8 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.dates import DateFormatter
 
-from bsky_net import Post
-from bsky_net.utils import jsonl
+from bsky_net import Post, jsonl
 
 # Constants
 BATCH_DIR = "../data/batches/moderation-2023-05-24_2023-05-28"
@@ -58,7 +57,7 @@ for file in sorted(os.listdir(f"{BATCH_DIR}/out")):
         labels_ref[obj["custom_id"]] = topic
 
 START_URI = "at://did:plc:yl7wcldipsfnjdww2jg5mnrv/app.bsky.feed.post/3jwj5rqybfc2o"
-END_URI = "at://did:plc:zyrricadyhmzfjw6didjrwio/app.bsky.feed.post/3jwkurtzs6c2a"
+END_URI = "at://did:plc:ilsyluda2ek7zviuxr7k23yd/app.bsky.feed.post/3jwowra3n5u27"
 
 posts = []
 in_range = False

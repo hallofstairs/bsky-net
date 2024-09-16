@@ -9,8 +9,7 @@ from enum import Enum
 
 from openai import OpenAI
 
-from bsky_net import Post
-from bsky_net.utils import jsonl
+from bsky_net import Post, jsonl
 
 # Constants
 EXPERIMENTS_DIR = "../data/experiments"
