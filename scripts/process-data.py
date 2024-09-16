@@ -7,7 +7,7 @@ import typing as t
 from datetime import datetime
 from enum import Enum
 
-from bsky_net import did_from_uri, records
+from bsky_net import Follow, Like, Post, Repost, did_from_uri, records
 
 
 class TimeFormat(Enum):
@@ -28,7 +28,7 @@ def get_time_key(created_at: str, grouping: str) -> str:
     return datetime.fromisoformat(created_at.replace("Z", "+00:00")).strftime(grouping)
 
 
-def extract_quoted_uri(post: "Post") -> t.Optional[str]:
+def extract_quoted_uri(post: Post) -> t.Optional[str]:
     if "embed" not in post or not post["embed"]:
         return None
 
@@ -61,23 +61,14 @@ def classify_post_opinion(text: str) -> int:
 # ===== Type hints =====
 
 
-class Post(t.TypedDict):
-    did: str
-    uri: str
-    text: str
-    createdAt: str
-    reply: t.Optional[dict[str, dict]]
-    embed: t.Optional[dict[str, t.Any]]
-
-
-class Follow(t.TypedDict):
-    did: str  # DID of the follower
-    createdAt: str  # Timestamp of the follow
+class FollowEvent(t.TypedDict):
+    did: str  # DID of the user following
+    createdAt: str  # Timestamp of the follow event
 
 
 class Node(t.TypedDict):
     createdAt: str  # Timestamp of the user's profile creation
-    followers: list[Follow]  # List of followers
+    followers: list[FollowEvent]  # List of followers
 
 
 class Impression(t.TypedDict):
@@ -96,7 +87,7 @@ class UserTimestep(t.TypedDict):
 
 # ===== Main script =====
 
-STREAM_DIR = "./data/raw/bluesky"
+STREAM_PATH = "./data/raw/records-2023-07-01.jsonl"
 OUTPUT_DIR = "./data/processed"
 END_DATE = "2023-04-01"  # TODO: Extend this
 
@@ -169,7 +160,7 @@ if __name__ == "__main__":
 
         return
 
-    for record in records(stream_dir=STREAM_DIR, end_date=END_DATE):
+    for record in records(stream_path=STREAM_PATH, end_date=END_DATE):
         time_key = get_time_key(record["createdAt"], time_period.value)
         record_count += 1
 
@@ -194,7 +185,7 @@ if __name__ == "__main__":
 
         # Process post creation
         if record["$type"] == "app.bsky.feed.post":
-            post = Post(**record)
+            post = record
 
             # Don't consider replies as status updates
             if "reply" in post and post["reply"]:
@@ -300,35 +291,42 @@ if __name__ == "__main__":
 
         # Process like
         if record["$type"] == "app.bsky.feed.like":
+            like = record
+
             add_interaction(
                 "like",
                 time_key,
-                record["did"],
-                record["subject"]["uri"],
-                record["createdAt"],
+                like["did"],
+                like["subject"]["uri"],
+                like["createdAt"],
             )
 
         # Process repost
         if record["$type"] == "app.bsky.feed.repost":
+            repost = record
             add_interaction(
                 "repost",
                 time_key,
-                record["did"],
-                record["subject"]["uri"],
-                record["createdAt"],
+                repost["did"],
+                repost["subject"]["uri"],
+                repost["createdAt"],
             )
 
         # Process follow
         if record["$type"] == "app.bsky.graph.follow":
-            if record["subject"] not in follow_graph:
-                follow_graph[record["subject"]] = {
-                    "createdAt": record["createdAt"],
+            follow = record
+
+            if follow["subject"] not in follow_graph:
+                follow_graph[follow["subject"]] = {
+                    "createdAt": follow["createdAt"],
                     "followers": [],
                 }
 
-            follow_graph[record["subject"]]["followers"].append(
-                {"did": record["did"], "createdAt": record["createdAt"]}
-            )
+
+            follow_graph[follow["subject"]]["followers"].append({
+                "did": follow["did"],
+                "createdAt": follow["createdAt"],
+            })
 
     # Save data
     graph_dir = f"{OUTPUT_DIR}/engagement-{time_period.name}-{END_DATE}"

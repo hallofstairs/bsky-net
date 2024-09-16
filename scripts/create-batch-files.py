@@ -4,43 +4,27 @@ import os
 from bsky_net import Post, records
 
 # Constants
-STREAM_DIR = "../data/raw/stream-2023-07-01"
-BATCH_DIR = "../data/batches"
+STREAM_PATH = "data/raw/records-2023-07-01.jsonl"
+BATCH_DIR = "data/batches"
 
 BATCH_MAX_N = 50_000
 BATCH_QUEUE_MAX_TOKENS = 1_900_000
 
 AVG_TOKENS_PER_POST = 90
-SYSTEM_PROMPT_TOKENS = 174
+SYSTEM_PROMPT_TOKENS = 51
 AVG_TOKENS_PER_REQ = SYSTEM_PROMPT_TOKENS + AVG_TOKENS_PER_POST
 
-SYS_PROMPT = """You are tasked with analyzing a post from the social network Bluesky to determine if it references the network's moderation policies, especially in relation to the Bluesky development team.
-
-Examples:
-Text: "This is definitely the answer. Everyone ranting and raving about moderation decisions here are completely blind to how things will work once federation launches."
-Class: 1
-
-Text: "I've seen that Alice chick 4 times now. \n\nJust bury her and block. I thought that was the plan here"
-Class: 1
-
-Text: "I think I\u2019ve been on here a month with zero invite codes bluesky mods hate me"
-Class: 0
-
-Text: "So wait does "What's Hot Classic" mean the classic feed with nudes or without? Asking for a friend who is in horny jail."
-Class: 0"""
+SYS_PROMPT = """Classify this Bluesky post as related to the social network's moderation policies (1) or not (0). Focus solely on opinions about how Bluesky handles content moderation."""
 
 
 def make_prompt(post: Post):
     return f"""Classify the following:
-Text: "{post["text"]}"
-Class:"""
+Text: "{post["text"]}" """
 
 
 # Create BatchAPI request
-BATCH_DESCRIPTION = "moderation-2023-05-24_2023-05-28"
-
-START_DATE = "2023-05-24"
-END_DATE = "2023-05-28"
+BATCH_DESCRIPTION = "mega-moderation-2023-07-01"
+END_DATE = "2023-07-01"
 
 if os.path.exists(f"{BATCH_DIR}/{BATCH_DESCRIPTION}"):
     raise ValueError(f"Batch folder '{BATCH_DESCRIPTION}' already exists.")
@@ -53,7 +37,7 @@ batch_size = 0
 total_tokens = 0
 
 # Create a file for each batch of posts
-for record in records(stream_dir=STREAM_DIR, start_date=START_DATE, end_date=END_DATE):
+for record in records(stream_path=STREAM_PATH, end_date=END_DATE):
     if record["$type"] == "app.bsky.feed.post":
         post: Post = record
 

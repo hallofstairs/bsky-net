@@ -8,7 +8,7 @@ from bsky_net import Post, records
 
 # %% Constants
 
-STREAM_DIR = "data/raw/stream-2023-07-01"
+STREAM_PATH = "data/raw/records-2023-07-01.jsonl"
 EXPERIMENTS_DIR = "data/experiments"
 
 START_DATE = "2023-05-24"
@@ -112,9 +112,7 @@ last_date = ""
 # I propose a permanent ban on magicians for disinformation
 
 
-for record in records(
-    stream_dir=STREAM_DIR, start_date=START_DATE, end_date=END_DATE, log=False
-):
+for record in records(STREAM_PATH, start_date=START_DATE, end_date=END_DATE, log=False):
     if record["$type"] == "app.bsky.feed.post":
         post = Post(**record)  # TODO: Fix $type in __init__.py
 
