@@ -2,6 +2,7 @@ import json
 import sys
 import time
 import typing as t
+from datetime import datetime, timedelta
 
 T = t.TypeVar("T")
 
@@ -136,8 +137,19 @@ class UserTimestep(t.TypedDict):
     consumed: dict[str, Impression]  # All observations for this user during time period
 
 
+def generate_timestamps(start_date: str, end_date: str) -> list[str]:
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    delta = end_dt - start_dt
+
+    return [
+        (start_dt + timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range(delta.days + 1)
+    ]
+
+
 def records(
-    stream_path: str = "../data/raw/records-2023-07-01.jsonl",
+    stream_path: str = "../data/raw/stream-2023-07-01",
     start_date: str = "2022-11-17",
     end_date: str = "2023-05-01",
     log: bool = True,
@@ -147,8 +159,9 @@ def records(
 
     End date is inclusive.
     """
-    for record in tq(jsonl[Record].iter(stream_path), active=log):
-        if record["createdAt"] >= start_date and record["createdAt"] <= end_date:
+
+    for ts in tq(generate_timestamps(start_date, end_date), active=log):
+        for record in jsonl[Record].iter(f"{stream_path}/{ts}.jsonl"):
             yield record
 
 
