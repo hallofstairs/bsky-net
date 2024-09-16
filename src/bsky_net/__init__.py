@@ -37,10 +37,15 @@ def tq(iterable: t.Iterable[T], active: bool = True) -> t.Generator[T, None, Non
                 )
                 sys.stdout.flush()
             else:
-                sys.stdout.write(f"\r{i+1}")
+                sys.stdout.write(f"\rProcessed: {i+1}")
                 sys.stdout.flush()
 
         yield item
+
+
+class CidUri(t.TypedDict):
+    cid: str
+    uri: str
 
 
 Post = t.TypedDict(
@@ -51,15 +56,65 @@ Post = t.TypedDict(
         "uri": str,
         "text": str,
         "createdAt": str,
-        "reply": t.Optional[dict[str, dict]],
+        "reply": t.Optional[dict[t.Literal["root", "parent"], CidUri]],
         "embed": t.Optional[dict[str, t.Any]],
     },
 )
 
+Follow = t.TypedDict(
+    "Follow",
+    {
+        "$type": t.Literal["app.bsky.graph.follow"],
+        "did": str,  # DID of the follower
+        "uri": str,  # URI of the follow record
+        "createdAt": str,  # Timestamp of the follow
+        "subject": str,  # DID of the followed user
+    },
+)
 
-class Follow(t.TypedDict):
-    did: str  # DID of the follower
-    createdAt: str  # Timestamp of the follow
+Repost = t.TypedDict(
+    "Repost",
+    {
+        "$type": t.Literal["app.bsky.feed.repost"],
+        "did": str,
+        "uri": str,
+        "createdAt": str,
+        "subject": CidUri,
+    },
+)
+
+Like = t.TypedDict(
+    "Like",
+    {
+        "$type": t.Literal["app.bsky.feed.like"],
+        "did": str,
+        "uri": str,
+        "createdAt": str,
+        "subject": CidUri,
+    },
+)
+
+Block = t.TypedDict(
+    "Block",
+    {
+        "$type": t.Literal["app.bsky.graph.block"],
+        "did": str,
+        "uri": str,
+        "createdAt": str,
+        "subject": str,
+    },
+)
+
+Profile = t.TypedDict(
+    "Profile",
+    {
+        "$type": t.Literal["app.bsky.actor.profile"],
+        "did": str,
+        "createdAt": str,
+    },
+)
+
+Record = Post | Follow | Repost | Like | Block | Profile
 
 
 class Node(t.TypedDict):
@@ -82,17 +137,17 @@ class UserTimestep(t.TypedDict):
 
 
 def records(
-    stream_path: str,
+    stream_path: str = "../data/raw/records-2023-07-01.jsonl",
     start_date: str = "2022-11-17",
     end_date: str = "2023-05-01",
     log: bool = True,
-) -> t.Generator[t.Any, None, None]:
+) -> t.Generator[Record, None, None]:
     """
     Generator that yields records from the stream for the given date range.
 
     End date is inclusive.
     """
-    for record in tq(jsonl[t.Any].iter(stream_path), active=log):
+    for record in tq(jsonl[Record].iter(stream_path), active=log):
         if record["createdAt"] >= start_date and record["createdAt"] <= end_date:
             yield record
 
