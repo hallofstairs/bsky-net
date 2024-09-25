@@ -52,7 +52,7 @@ Class:"""
 
 # %% Structured output testing
 
-Stance = t.Literal["favor", "against", "none"]
+Stance = t.Literal["favor", "against", "none", "unrelated"]
 
 
 class Topic(str, Enum):
@@ -73,14 +73,17 @@ class Topic(str, Enum):
     community_moderation = "Discussions about user-driven moderation on Bluesky, like flagging or reporting content"
     moderation_criticism = "Criticizing Bluesky's moderation efforts (e.g., over-enforcement or under-enforcement)"
     moderation_praise = "Commending Bluesky's moderation efforts or improvements"
-    general_moderation = "Broad posts about moderation without a specific focus"
+    general_moderation = (
+        "Broad posts about Bluesky's moderation without a specific focus"
+    )
     unrelated = "Posts that are not discussing Bluesky's moderation efforts at all."
 
 
 # Structured output
 class StanceDetection(BaseModel):
-    topic: list[Topic]
+    # topic: list[Topic]
     stance: Stance
+    reasoning: str
 
 
 SEMEVAL_TRIAL_PATH = "../data/experiments/test-sets/semeval-trial.jsonl"
@@ -90,7 +93,7 @@ SemEvalSample = t.TypedDict(
     {
         "ID": str,
         "Target": str,
-        "Tweet": str,
+        "post": str,
         "Stance": t.Literal["FAVOR", "AGAINST", "NONE"],
         "Opinion towards": t.Literal["TARGET", "OTHER", "NO_ONE"],
         "Sentiment": t.Literal["POSITIVE", "NEGATIVE", "NEUTRAL"],
@@ -106,6 +109,61 @@ class BskySample(Post):
 
 results = Counter()
 
+sys_prompt = """Q: What is the Bluesky post's stance on the target? If the post is not clearly referencing the target, choose 'unrelated' and explain why.
+The options are:
+- against
+- favor
+- none
+- unrelated
+
+post: <I'm sick of celebrities who think being a well known actor makes them an authority on anything else. #robertredford #UN>
+target: Liberal Values
+reasoning: the author is implying that celebrities should not be seen as authorities on political issues, which is often associated with liberal values such as Robert Redford who is a climate change activist -> the author is against liberal values
+stance: against
+
+post: <I believe in a world where people are free to move and choose where they want to live>
+target: Immigration
+reasoning: the author is expressing a belief in a world with more freedom of movement -> the author is in favor of immigration
+stance: favor
+
+post: <I love the way the sun sets every day. #Nature #Beauty>
+target: Conservative Party
+reasoning: the author is in favor of nature and beauty -> the author is neutral towards taxes
+stance: unrelated
+
+post: <If a woman chooses to pursue a career instead of staying at home, is she any less of a mother?>
+target: Conservative Party
+reasoning: the author is questioning traditional gender roles, which are often supported by the conservative party -> the author is against the conservative party
+stance: against
+
+post: <We need to make sure that mentally unstable people can't become killers #protect #US>
+target: Gun Control
+reasoning: the author is advocating for measures to prevent mentally unstable people from accessing guns -> the author is in favor of gun control
+stance: favor
+
+post: <There is no shortcut to success, there's only hard work and dedication #Success #SuccessMantra>
+target: Open Borders
+reasoning: the author is in favor of hard work and dedication -> the author is neutral towards open borders
+stance: none
+"""
+
+user_prompt = """post: <{text}>
+target: {target}
+"""
+
+
+class Evidence(BaseModel):
+    phrase: str
+    reasoning: str
+
+
+class StanceReasoning(BaseModel):
+    evidence: list[Evidence]
+    final_answer: t.Literal["favor", "against", "none", "unrelated"]
+
+
+TARGET = "Bluesky's moderation efforts"
+
 # for sample in jsonl[SemEvalSample].iter(SEMEVAL_TRIAL_PATH):
 for sample in jsonl[BskySample].iter(BSKY_TEST_PATH):
     completion = client.beta.chat.completions.parse(
@@ -113,11 +171,18 @@ for sample in jsonl[BskySample].iter(BSKY_TEST_PATH):
         messages=[
             {
                 "role": "system",
-                "content": "Determine the topic of the user's Bluesky post and their stance on it.",
+                "content": """You are an NLP expert, tasked with annotating posts from the social network Bluesky to determine the post's stance on Bluesky's moderation policies, trust and safety, and user removal, especially in relation to the Bluesky development team. If the post is not CLEARLY referencing the BLUESKY PLATFORM ITSELF and ITS moderation policies, classify it's stance as 'unrelated'. Otherwise, classify the stance of the post as 'favor', 'against', or 'none'.
+
+Since you're an expert, you're able to understand sarcasm, irony, and other forms of figurative language. You're also able to understand the nuance in the post's stance and reference to the Bluesky platform or development team.
+""",
             },
-            {"role": "user", "content": sample["text"]},
+            {
+                "role": "user",
+                "content": sample["text"],
+            },
         ],
-        response_format=StanceDetection,
+        temperature=0.0,
+        response_format=StanceReasoning,
     )
 
     stance = completion.choices[0].message.parsed
@@ -140,22 +205,41 @@ for sample in jsonl[BskySample].iter(BSKY_TEST_PATH):
     # else:
     #     print("Match!")
 
-    if Topic.unrelated in stance.topic and sample["classification"] == 1:
-        print("FALSE NEGATIVE", stance.topic, sample["classification"])
+    # if Topic.unrelated in stance.topic and sample["classification"] == 1:
+    #     print("FALSE NEGATIVE")
+    #     results["fn"] += 1
+
+    # elif Topic.unrelated not in stance.topic and sample["classification"] == 0:
+    #     print("FALSE POSITIVE")
+    #     results["fp"] += 1
+
+    # elif Topic.unrelated in stance.topic and sample["classification"] == 0:
+    #     print("TRUE NEGATIVE")
+    #     results["tn"] += 1
+
+    # elif Topic.unrelated not in stance.topic and sample["classification"] == 1:
+    #     print("TRUE POSITIVE")
+    #     results["tp"] += 1
+
+    if stance.final_answer == "unrelated" and sample["classification"] == 1:
+        print("FALSE NEGATIVE")
         results["fn"] += 1
 
-    elif Topic.unrelated not in stance.topic and sample["classification"] == 0:
-        print("FALSE POSITIVE", stance.topic, sample["classification"])
+    elif stance.final_answer != "unrelated" and sample["classification"] == 0:
+        print("FALSE POSITIVE")
         results["fp"] += 1
 
-    elif Topic.unrelated in stance.topic and sample["classification"] == 0:
-        print("TRUE NEGATIVE", stance.topic, sample["classification"])
+    elif stance.final_answer == "unrelated" and sample["classification"] == 0:
+        print("TRUE NEGATIVE")
         results["tn"] += 1
 
-    elif Topic.unrelated not in stance.topic and sample["classification"] == 1:
-        print("TRUE POSITIVE", stance.topic, sample["classification"])
+    elif stance.final_answer != "unrelated" and sample["classification"] == 1:
+        print("TRUE POSITIVE")
         results["tp"] += 1
 
+    # print("TOPICS: ", [topic.name for topic in stance.topic])
+    print("STANCE: ", stance.final_answer)
+    print("REASONING: ", stance.evidence)
     print()
 
 tp = results["tp"]
@@ -184,10 +268,95 @@ print(
 # %%
 
 """
-No system prompt:
+System prompt v1: Determine the topic of the user's Bluesky post and their stance on it.
 
 Precision: 0.7528
 Recall:    0.9437
 F1 Score:  0.8375
 Accuracy:  0.7679
+
+-------------------
+
+System prompt v2: You are tasked with classifying posts from the social network Bluesky to determine if they reference the network's moderation policies, especially in relation to the Bluesky development team. Each post may belong to one or more categories, but if they aren't clearly referencing the Bluesky platform and its moderation policies, classify it as 'Unrelated.' In addition, for each category, determine the stance of the post with respect to those topics.
+
+TP: 60 (53.57%) | FP: 6  (5.36%)
+FN: 11 (9.82%) | TN: 35 (31.25%)
+
+Precision: 0.9091
+Recall:    0.8451
+F1 Score:  0.8759
+Accuracy:  0.8482
+
+-------------------
+
+System prompt v2 with fixing Bluesky general moderation:
+
+Precision: 0.8824
+Recall:    0.8451
+F1 Score:  0.8633
+Accuracy:  0.8304
+
+-------------------
+
+System prompt v3: You are an NLP expert, tasked with annotating posts from the social network Bluesky to determine if they reference the network's moderation policies, especially in relation to the Bluesky development team. Each post may belong to one or more categories, but if they aren't CLEARLY referencing the BLUESKY PLATFORM ITSELF and ITS moderation policies, classify it as 'Unrelated.' In addition, for each category, determine the stance of the post with respect to those topics.
+
+Precision: 0.9375
+Recall:    0.8451
+F1 Score:  0.8889
+Accuracy:  0.8661
+
+v3 with clearer stance description: You are an NLP expert, tasked with annotating posts from the social network Bluesky to determine if they reference the network's moderation policies, especially in relation to the Bluesky development team. Each post may belong to one or more categories, but if they aren't CLEARLY referencing the BLUESKY PLATFORM ITSELF and ITS moderation policies, classify it as 'Unrelated.' In addition, determine the STANCE of the USER on BLUESKY'S moderation performance.
+
+
+v4: Q: What is the post's stance on the target?
+The options are:
+- against
+- favor
+- none
+
+post: <I'm sick of celebrities who think being a well known actor makes them an authority on anything else. #robertredford #UN>
+target: Liberal Values
+reasoning: the author is implying that celebrities should not be seen as authorities on political issues, which is often associated with liberal values such as Robert Redford who is a climate change activist -> the author is against liberal values
+stance: against
+
+post: <I believe in a world where people are free to move and choose where they want to live>
+target: Immigration
+reasoning: the author is expressing a belief in a world with more freedom of movement -> the author is in favor of immigration
+stance: favor
+
+post: <I love the way the sun sets every day. #Nature #Beauty>
+target: Taxes
+reasoning: the author is in favor of nature and beauty -> the author is neutral towards taxes
+stance: none
+
+post: <If a woman chooses to pursue a career instead of staying at home, is she any less of a mother?>
+target: Conservative Party
+reasoning: the author is questioning traditional gender roles, which are often supported by the conservative party -> the author is against the conservative party
+stance: against
+
+post: <We need to make sure that mentally unstable people can't become killers #protect #US>
+target: Gun Control
+reasoning: the author is advocating for measures to prevent mentally unstable people from accessing guns -> the author is in favor of gun control
+stance: favor
+
+post: <There is no shortcut to success, there's only hard work and dedication #Success #SuccessMantra>
+target: Open Borders
+reasoning: the author is in favor of hard work and dedication -> the author is neutral towards open borders
+stance: none
+
+post: <{text}>
+target: {target}
+reasoning:
+
+CoT:
+
+Precision: 0.9661
+Recall:    0.8028
+F1 Score:  0.8769
+Accuracy:  0.8571
+
+CoT with extra sentence:
+
+
+TODO: Stance labels
 """
