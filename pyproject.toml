@@ -3,7 +3,7 @@ name = "bsky-net"
 version = "0.1.0"
 description = ""
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "bertopic>=0.16.3",
     "python-dotenv>=1.0.1",
@@ -15,6 +15,8 @@ dependencies = [
     "huggingface-hub>=0.24.6",
     "tiktoken>=0.7.0",
     "openai>=1.43.0",
+    "fastcoref>=2.1.6",
+    "pydantic>=2.9.2",
 ]
 
 [build-system]
@@ -22,11 +24,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
-dev-dependencies = [
-    "ipykernel>=6.29.5",
-    "pyarrow>=17.0.0",
-    "datasets>=2.21.0",
-]
+dev-dependencies = ["ipykernel>=6.29.5", "pyarrow>=17.0.0", "datasets>=2.21.0"]
 
 [tool.uv.sources]
 bsky-net = { workspace = true }
