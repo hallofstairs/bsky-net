@@ -1,4 +1,4 @@
-# Imports
+# %% Imports
 
 import json
 import os
@@ -12,56 +12,38 @@ from pydantic import BaseModel
 from bsky_net import jsonl
 
 BENCHMARK_PATH = "./data/experiments/test-sets/moderation-topic-stance.jsonl"
-MODEL = "gpt-4o"
+MODEL = "gpt-4o-mini"
+
+# TODO: Ask to determine if it's a genuine opinion or humourous
+
 SYSTEM_PROMPT = """You are an NLP expert, tasked with performing opinion mining on posts from the Bluesky social network. Your goal is to detect the post author's opinion on the Bluesky team's approach thus far to moderation and trust and safety (T&S) on their platform. 
 
 If the post is unrelated to moderation on Bluesky, indicate that the post is 'off-topic'.
 
-If the post is on-topic, classify if the post is defending or sympathizing the Bluesky team's moderation efforts (favor), criticizing them (against), or neutral (none). If the post's opinion is not directed towards the Bluesky team's moderation approach, even if it's on-topic, indicate that the opinion is 'none'.
+Include quotes from the text that you used to reach your answer."""
 
-Guide the user through your classification step by step and explain your final conclusion, citing specific quotes from the text."""
 
 TOPIC_STANCE_SCHEMA: JSONSchema = {
     "name": "opinion_mining",
-    # "description": "The stance of the text towards the topic (if the text is on-topic). Include reasoning for your answer.",
     "strict": True,
     "schema": {
         "type": "object",
-        "required": ["steps", "on_topic", "opinion"],
+        "required": ["reasoning", "on_topic"],
         "additionalProperties": False,
         "properties": {
-            "steps": {
+            "reasoning": {
                 "type": "array",
-                # "description": "The reasoning supporting your topic and stance classification.",
                 "items": {
                     "type": "object",
-                    "required": ["quote", "explanation"],
+                    "required": ["quote", "conclusion"],
                     "properties": {
-                        "quote": {
-                            "type": "string",
-                            # "description": "The quote from the text used to support your explanation.",
-                        },
-                        "explanation": {
-                            "type": "string",
-                            # "description": "The explanation that supports your topic and stance classification.",
-                        },
+                        "quote": {"type": "string"},
+                        "conclusion": {"type": "string"},
                     },
                     "additionalProperties": False,
                 },
             },
-            # "conclusion": {
-            #     "type": "string",
-            #     # "description": "The explanation that supports your topic and stance classification.",
-            # },
-            "on_topic": {
-                "type": "boolean",
-                # "description": "Whether the text is relevant to the topic.",
-            },
-            "opinion": {
-                "enum": ["favor", "against", "none"],
-                "type": ["string", "null"],
-                # "description": "The stance of the text towards the topic, if the text is on-topic.",
-            },
+            "on_topic": {"type": "boolean"},
         },
     },
 }
@@ -154,13 +136,15 @@ class TopicStanceSample(BaseModel):
 
 class Reasoning(BaseModel):
     quote: str
-    explanation: str
+    conclusion: str
 
 
 class StanceClassification(BaseModel):
     on_topic: bool
     opinion: t.Optional[Stance] = None
-    steps: list[Reasoning]
+    reasoning: list[Reasoning]
+    # main_topic: str
+    # is_satirical: bool
     # conclusion: str
 
 
@@ -221,28 +205,28 @@ for obj in jsonl[dict].iter(BENCHMARK_PATH):
         )
         # print(f"Conclusion: {pred.conclusion}")
         print("Reasoning:")
-        for reason in pred.steps:
+        for reason in pred.reasoning:
             print(f"  - Quote: {reason.quote}")
-            print(f"  - Explanation: {reason.explanation}")
+            print(f"  - Conclusion: {reason.conclusion}")
             print()
         print("-" * 40)
         continue
 
-    if sample.stance and sample.stance != pred.opinion:
-        print("TEXT: ")
-        print(sample.text, "\n")
-        print(f"Pred - {'on-topic' if pred.on_topic else 'off-topic'}, {pred.opinion}")
-        print(
-            f"True - {'on-topic' if sample.on_topic else 'off-topic'}, {sample.stance}"
-        )
-        # print(f"Conclusion: {pred.conclusion}")
-        print("Reasoning:")
-        for reason in pred.steps:
-            print(f"  - Quote: {reason.quote}")
-            print(f"  - Explanation: {reason.explanation}")
-            print()
-        print("-" * 40)
-        continue
+    # if sample.stance and sample.stance != pred.opinion:
+    #     print("TEXT: ")
+    #     print(sample.text, "\n")
+    #     print(f"Pred - {'on-topic' if pred.on_topic else 'off-topic'}, {pred.opinion}")
+    #     print(
+    #         f"True - {'on-topic' if sample.on_topic else 'off-topic'}, {sample.stance}"
+    #     )
+    #     # print(f"Conclusion: {pred.conclusion}")
+    #     print("Reasoning:")
+    #     for reason in pred.reasoning:
+    #         print(f"  - Quote: {reason.quote}")
+    #         print(f"  - Conclusion: {reason.conclusion}")
+    #         print()
+    #     print("-" * 40)
+    #     continue
 
 stance_combined = stance_eval["favor"] + stance_eval["against"] + stance_eval["none"]
 
