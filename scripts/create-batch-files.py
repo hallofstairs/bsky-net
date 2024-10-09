@@ -3,9 +3,8 @@ import os
 
 import boto3
 from dotenv import load_dotenv
-from openai.types.shared_params.response_format_json_schema import JSONSchema
 
-from bsky_net import Post, records
+from bsky_net import Post, prompts, records
 
 load_dotenv()
 
@@ -26,37 +25,6 @@ BATCH_QUEUE_MAX_TOKENS = 19_000_000
 AVG_TOKENS_PER_POST = 90
 SYSTEM_PROMPT_TOKENS = 237
 AVG_TOKENS_PER_REQ = SYSTEM_PROMPT_TOKENS + AVG_TOKENS_PER_POST
-
-SYSTEM_PROMPT = """You are an NLP expert, tasked with performing opinion mining on posts from the Bluesky social network. Your goal is to detect the post author's opinion on the Bluesky team's approach thus far to moderation and trust and safety (T&S) on their platform. 
-
-If the post is unrelated to moderation on Bluesky, indicate that the post is 'off-topic'.
-
-Include quotes from the text that you used to reach your answer."""
-
-TOPIC_STANCE_SCHEMA: JSONSchema = {
-    "name": "opinion_mining",
-    "strict": True,
-    "schema": {
-        "type": "object",
-        "required": ["reasoning", "on_topic"],
-        "additionalProperties": False,
-        "properties": {
-            "reasoning": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "required": ["quote", "conclusion"],
-                    "properties": {
-                        "quote": {"type": "string"},
-                        "conclusion": {"type": "string"},
-                    },
-                    "additionalProperties": False,
-                },
-            },
-            "on_topic": {"type": "boolean"},
-        },
-    },
-}
 
 s3 = boto3.client(
     "s3",
@@ -106,13 +74,13 @@ for record in records(
             "body": {
                 "model": MODEL,
                 "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": prompts.Topic.SYSTEM},
                     {"role": "user", "content": post["text"]},
                 ],
                 "temperature": 0.0,
                 "response_format": {
                     "type": "json_schema",
-                    "json_schema": TOPIC_STANCE_SCHEMA,
+                    "json_schema": prompts.Topic.OUTPUT_SCHEMA,
                 },
             },
         }
