@@ -109,7 +109,6 @@ for record in records(
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": post["text"]},
                 ],
-                "logprobs": True,
                 "temperature": 0.0,
                 "response_format": {
                     "type": "json_schema",
