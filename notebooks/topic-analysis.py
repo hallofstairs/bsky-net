@@ -6,24 +6,26 @@ import typing as t
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.dates import DateFormatter
+import seaborn as sns
+from pydantic import BaseModel, ValidationError
 
-from bsky_net import Post, jsonl
+from bsky_net import Post, jsonl, records
 
 # Constants
-BATCH_DIR = "../data/batches/moderation-2023-05-24_2023-05-28"
-POSTS_PATH = "../data/raw/posts/posts-2023-07-01.jsonl"
+BATCH_DIR = "../data/batches/cot-moderation-2023-05-24_2023-05-28"
+STREAM_DIR = "../data/raw/stream-2023-07-01"
 
-# TODO: second pass with GPT 4o
+# %% Helpers
 
 
-def get_topic(message: str) -> t.Literal[0, 1, -1]:
-    if "1" in message:
-        return 1
-    elif "0" in message:
-        return 0
-    else:
-        return -1
+class Reasoning(BaseModel):
+    quote: str
+    conclusion: str
+
+
+class StanceClassification(BaseModel):
+    on_topic: bool
+    reasoning: list[Reasoning]
 
 
 def extract_quoted_uri(post: Post) -> t.Optional[str]:
@@ -39,153 +41,136 @@ def extract_quoted_uri(post: Post) -> t.Optional[str]:
         return None
 
 
-def rkey_from_uri(uri: str) -> str:
-    return uri.split("/")[-1]
+# %% Extract on-topic posts
 
-
-# %% Aggregate output files, hydrate with post info
-
-labels_ref: dict[str, int] = {}
+on_topic_uris: set[str] = set()
+count = 0
 
 for file in sorted(os.listdir(f"{BATCH_DIR}/out")):
     path = f"{BATCH_DIR}/out/{file}"
 
     for obj in jsonl[dict].iter(path):
-        message: str = obj["response"]["body"]["choices"][0]["message"]["content"]
-        topic = get_topic(message)
+        try:
+            res = StanceClassification.model_validate_json(
+                obj["response"]["body"]["choices"][0]["message"]["content"]
+            )
+        except ValidationError:
+            continue
 
-        labels_ref[obj["custom_id"]] = topic
+        if res.on_topic:
+            on_topic_uris.add(obj["custom_id"])
 
-START_URI = "at://did:plc:yl7wcldipsfnjdww2jg5mnrv/app.bsky.feed.post/3jwj5rqybfc2o"
-END_URI = "at://did:plc:ilsyluda2ek7zviuxr7k23yd/app.bsky.feed.post/3jwowra3n5u27"
+        count += 1
 
-posts = []
-in_range = False
+print(
+    f"{count} total posts, {len(on_topic_uris)} on-topic ({len(on_topic_uris) / count * 100:.2f}%)"
+)
+
+# %% Label related posts (quotes, replies)
+
+
+class TaggedPost(BaseModel):
+    uri: str
+    createdAt: str
+    did: str
+    on_topic: bool
+    text: str
+
+
+posts: list[TaggedPost] = []
 
 # Create post ref
-for post in jsonl[Post].iter(POSTS_PATH):
-    if post["uri"] == START_URI:
-        print("In range: ", post["uri"])
-        in_range = True
-
-    if not in_range:
+for record in records(STREAM_DIR, start_date="2023-05-24", end_date="2023-05-28"):
+    if record["$type"] != "app.bsky.feed.post":
         continue
 
-    if post["uri"] == END_URI:
-        break
+    post = record
+
+    on_topic = False
 
     # Assign replies label of root
     if "reply" in post and post["reply"]:
-        label = labels_ref.get(post["reply"]["root"]["uri"])
-
-        if label is None:
-            continue
+        if post["reply"]["root"]["uri"] in on_topic_uris:
+            on_topic = True
 
     # Assign quotes label of subject
-    elif "embed" in post and post["embed"]:
+    if "embed" in post and post["embed"]:
         subject_uri = extract_quoted_uri(post)
 
-        # Not a quote post
-        if not subject_uri:
+        if not subject_uri:  # Not a quote post
             continue
 
-        label = labels_ref.get(subject_uri)
+        if subject_uri in on_topic_uris:
+            on_topic = True
 
-        if label is None:
-            continue
-
-    else:
-        label = labels_ref.get(post["uri"])
-
-        if label is None:
-            continue
+    if post["uri"] in on_topic_uris:
+        # print(post["text"])
+        # print("-" * 20)
+        on_topic = True
 
     posts.append(
-        {
-            "uri": post["uri"],
-            "createdAt": post["createdAt"],
-            "did": post["did"],
-            "classification": label,
-            "text": post["text"],
-        }
+        TaggedPost(
+            uri=post["uri"],
+            createdAt=post["createdAt"],
+            did=post["did"],
+            on_topic=on_topic,
+            text=post["text"],
+        )
     )
 
 
 # %% Analysis
 
 
-counts: dict[str, dict[int, int]] = {}
+counts: dict[str, dict] = {}
 
 for post in posts:
-    created_at = datetime.datetime.fromisoformat(post["createdAt"]).astimezone(
+    created_at = datetime.datetime.fromisoformat(post.createdAt).astimezone(
         datetime.timezone.utc
     )
-    # print(created_at)
 
     # Hourly counts
     time = created_at.replace(minute=0, second=0, microsecond=0).isoformat()
 
     if time not in counts:
         counts[time] = {
-            0: 0,
-            1: 0,
-            -1: 0,
+            "off_topic": 0,
+            "on_topic": 0,
+            "total": 0,
         }
 
-    counts[time][post["classification"]] += 1
+    category = "on_topic" if post.on_topic else "off_topic"
+
+    counts[time][category] += 1
+    counts[time]["total"] += 1
 
 # Sort counts by key (timestamp)
 sorted_counts = dict(sorted(counts.items()))
 
-for time, splits in sorted_counts.items():
-    total = sum(splits.values())
-
-    print(time, f"{(splits[1] / total * 100):.2f}%")
-
-
 # Convert the sorted_counts to a DataFrame for easier plotting
 df = pd.DataFrame(sorted_counts).T
 df.index = pd.to_datetime(df.index)
-df["positive_percentage"] = df[1] / df.sum(axis=1) * 100
+df["on_topic_pct"] = df["on_topic"] / df["total"] * 100
+df = df[df.index < pd.Timestamp("2023-05-29", tz=datetime.timezone.utc)]
 
-# Create the plot
-plt.figure(figsize=(12, 6))
-plt.plot(df.index, df["positive_percentage"])
+# %% Plot
 
-# Customize the plot
-plt.title("Percentage of Related to Moderation Decisions")
-plt.xlabel("Time")
-plt.ylabel("Percentage of Posts")
+sns.set_style("white")
+sns.set_context("poster")
 
-# Format x-axis to show dates nicely
-plt.gca().xaxis.set_major_formatter(DateFormatter("%b %d, %I%p"))
-plt.gcf().autofmt_xdate()  # Rotate and align the tick labels
+fig, ax = plt.subplots(figsize=(16, 9))
+sns.lineplot(x=df.index, y=df["on_topic_pct"], ax=ax)
 
-# Show the plot
+ax.set_title("Percentage of Posts Related to Bluesky Moderation Decisions")
+ax.set_xlabel("Time")
+ax.set_ylabel("Percentage of Posts")
+
+sns.despine()
+
 plt.tight_layout()
 plt.show()
 
-# %% Make posts ref
-
-posts_ref: dict[str, Post] = {}
-
-for post in jsonl[Post].iter(POSTS_PATH):
-    posts_ref[post["uri"]] = post
-
-# %% Print all relevant posts
-
-count = 0
-for file in sorted(os.listdir(f"{BATCH_DIR}/out")):
-    path = f"{BATCH_DIR}/out/{file}"
-
-    for obj in jsonl[dict].iter(path):
-        message: str = obj["response"]["body"]["choices"][0]["message"]["content"]
-        topic = get_topic(message)
-
-        post = posts_ref[obj["custom_id"]]
-
-        if topic == 1:
-            count += 1
-            print(post["text"])
-            print("-" * 40)
-            print()
+print("Total posts during period:", df["total"].sum())
+print(
+    f"On-topic posts during period: {df['on_topic'].sum()} ({df['on_topic'].sum() / df['total'].sum() * 100:.2f}%)"
+)
