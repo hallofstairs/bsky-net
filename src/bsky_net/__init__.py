@@ -165,13 +165,11 @@ def records(
             yield record
 
 
-def did_from_uri(uri: str) -> t.Optional[str]:
+def did_from_uri(uri: str) -> str:
     if not uri:
-        print("\nMisformatted URI (empty string)")
-        return None
+        raise ValueError("\nMisformatted URI (empty string)")
 
     try:
         return uri.split("/")[2]
     except Exception:
-        print("\nMisformatted URI: ", uri)
-        return None
+        raise ValueError(f"\nMisformatted URI: {uri}")
