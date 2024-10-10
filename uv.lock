@@ -291,6 +291,7 @@ dependencies = [
     { name = "boto3-stubs", extra = ["essential", "s3"] },
     { name = "fastcoref" },
     { name = "huggingface-hub" },
+    { name = "langid" },
     { name = "llvmlite" },
     { name = "matplotlib" },
     { name = "openai" },
@@ -317,13 +318,14 @@ requires-dist = [
     { name = "bsky-net", editable = "." },
     { name = "fastcoref", specifier = ">=2.1.6" },
     { name = "huggingface-hub", specifier = ">=0.24.6" },
+    { name = "langid" },
     { name = "llvmlite", specifier = ">=0.43.0" },
     { name = "matplotlib", specifier = ">=3.9.2" },
     { name = "openai", specifier = ">=1.43.0" },
     { name = "pydantic", specifier = ">=2.9.2" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "scikit-learn", specifier = ">=1.5.1" },
-    { name = "seaborn" },
+    { name = "seaborn", specifier = ">=0.13.2" },
     { name = "tiktoken", specifier = ">=0.7.0" },
     { name = "transformers", specifier = ">=4.44.1" },
 ]
@@ -1164,6 +1166,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/57/a8/eef8555bb38e9a414
 wheels = [
     { url = "https://files.pythonhosted.org/packages/58/70/4058ab0ebb082b18d06888e711baed7f33354a5e0b363bb627586d8c323a/langcodes-3.4.0-py3-none-any.whl", hash = "sha256:10a4cc078b8e8937d8485d3352312a0a89a3125190db9f2bb2074250eef654e9", size = 182028 },
 ]
+
+[[package]]
+name = "langid"
+version = "1.1.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ea/4c/0fb7d900d3b0b9c8703be316fbddffecdab23c64e1b46c7a83561d78bd43/langid-1.1.6.tar.gz", hash = "sha256:044bcae1912dab85c33d8e98f2811b8f4ff1213e5e9a9e9510137b84da2cb293", size = 1925978 }
 
 [[package]]
 name = "language-data"
