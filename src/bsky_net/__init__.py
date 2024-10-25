@@ -118,25 +118,6 @@ Profile = t.TypedDict(
 Record = Post | Follow | Repost | Like | Block | Profile
 
 
-class Node(t.TypedDict):
-    createdAt: str  # Timestamp of the user's profile creation
-    followers: list[Follow]  # List of followers
-
-
-class Impression(t.TypedDict):
-    did: str  # DID of the user observing the post
-    uri: str  # URI of the post
-    createdAt: str  # Timestamp of the observation
-    in_network: bool  # Whether the user follows the author of the post
-    expressed_opinion: int  # Opinion expressed in the post
-    reactions: list[dict]  # List of this user's reactions to the post
-
-
-class UserTimestep(t.TypedDict):
-    interactive: bool  # Whether user was interactive on Bluesky during time period
-    consumed: dict[str, Impression]  # All observations for this user during time period
-
-
 def generate_timestamps(start_date: str, end_date: str) -> list[str]:
     start_dt = datetime.strptime(start_date, "%Y-%m-%d")
     end_dt = datetime.strptime(end_date, "%Y-%m-%d")
