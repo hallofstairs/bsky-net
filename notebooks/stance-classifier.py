@@ -1,5 +1,6 @@
 # %% Imports
 
+import json
 import os
 import typing as t
 from collections import defaultdict
@@ -7,6 +8,7 @@ from itertools import count
 
 import langid
 from openai import OpenAI
+from openai.types.shared_params.response_format_json_schema import JSONSchema
 from pydantic import BaseModel, ValidationError
 
 from bsky_net import Post, did_from_uri, jsonl, records
@@ -200,7 +202,6 @@ for record in records(STREAM_DIR, start_date="2023-05-24", end_date="2023-05-28"
 # %% Assemble prompts with parent context
 
 
-# TODO: Handle deleted posts
 def get_parent_ctx(node: Node, ref: dict[str, Node]) -> str:
     if type(node) is QuoteNode:  # this post is a quote of parent
         prev_uri = node.subject_uri
@@ -255,14 +256,170 @@ for uri, node in on_topic_posts.items():
 
 # %% Prompting
 
+# TODO: Would it help if I said "User X's" opinion instead of "author's"?
+# TODO: try the 10-pretty-good prompt
+
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-user_prompt = ""
+MODEL = "gpt-4o-mini"
+SYSTEM_PROMPT = """You are an NLP expert, tasked with performing stance detection on posts from the Bluesky social network. Your goal is to detect the post author's stance on the Bluesky team's approach to moderation and trust and safety (T&S) on their platform.
 
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": user_prompt},
-    ],
+If the post is unrelated to social media moderation on Bluesky specifically, indicate that the post is 'off-topic'.
+
+If the post is on-topic, classify the stance of the author on the BLUESKY TEAM's MODERATION EFFORTS as defending/sympathizing with them (favor), criticizing them (against), or neither (none). If the post's opinion is not directed towards the BLUESKY TEAM's moderation approach, even if it's on-topic, indicate that the opinion is 'none'.
+
+Include quotes from the text that you used to reach your answer."""
+
+
+TOPIC_STANCE_SCHEMA: JSONSchema = {
+    "name": "stance_detection",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "required": ["reasoning", "on_topic", "opinion"],
+        "additionalProperties": False,
+        "properties": {
+            "reasoning": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["quote", "conclusion"],
+                    "properties": {
+                        "quote": {"type": "string"},
+                        "conclusion": {"type": "string"},
+                    },
+                    "additionalProperties": False,
+                },
+            },
+            "on_topic": {"type": "boolean"},
+            "opinion": {"enum": ["favor", "against", "none"], "type": "string"},
+        },
+    },
+}
+
+
+class StancePrediction(BaseModel):
+    reasoning: list[Reasoning]
+    on_topic: bool
+    opinion: t.Literal["favor", "against", "none"]
+
+
+for user_prompt in user_prompts:
+    completion = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.0,
+        response_format={"type": "json_schema", "json_schema": TOPIC_STANCE_SCHEMA},
+    )
+
+    if not completion.choices[0].message.content:
+        raise ValueError("No content in completion")
+
+    pred = StancePrediction.model_validate(
+        json.loads(completion.choices[0].message.content)
+    )
+
+    print(f"Prompt: {user_prompt}")
+    print(pred.model_dump_json(indent=2))
+    print("-" * 5)
+
+    with open("../evals/moderation/stance-detection.jsonl", "a") as f:
+        obj = {
+            "text": user_prompt,
+            "on_topic": pred.on_topic,
+            "opinion": pred.opinion,
+        }
+        f.write(json.dumps(obj) + "\n")
+
+# %% User-based stance classification
+
+USER_DID = "did:plc:xgjcudwc5yk4z2uex5v6e7bl"
+
+user_posts = [
+    post
+    for post in on_topic_posts.values()
+    if type(post) is OGNode and post.did == USER_DID
+][:5]
+
+full_user_prompt = "\n".join(
+    [f"post_{i}: `{post.text}`" for i, post in enumerate(user_posts)]
 )
+
+# %%
+
+SYSTEM_PROMPT = """You are an NLP expert, tasked with performing stance detection on a Bluesky user's posts. Your goal is to detect the user's stance on the Bluesky team's approach to moderation and trust and safety (T&S) on their platform.
+
+For each post, you will:
+1. Determine if the post is related to social media moderation efforts on Bluesky specifically
+2. Classify the stance of the user towards the BLUESKY TEAM's MODERATION EFFORTS as defending/sympathizing with them (favor), criticizing them (against), or neither (none).
+
+If the post is unrelated to social media moderation on Bluesky specifically, indicate that the post is 'off-topic'.
+
+Include quotes from the text that you used to reach your answer."""
+
+
+USER_STANCE_SCHEMA: JSONSchema = {
+    "name": "stance_detection",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "required": ["posts"],
+        "additionalProperties": False,
+        "properties": {
+            "posts": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["post_id", "reasoning", "on_topic", "opinion"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "post_id": {"type": "string"},
+                        "reasoning": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": ["quote", "conclusion"],
+                                "properties": {
+                                    "quote": {"type": "string"},
+                                    "conclusion": {"type": "string"},
+                                },
+                                "additionalProperties": False,
+                            },
+                        },
+                        "on_topic": {"type": "boolean"},
+                        "opinion": {
+                            "enum": ["favor", "against", "none"],
+                            "type": "string",
+                        },
+                    },
+                },
+            },
+        },
+    },
+}
+
+completion = client.chat.completions.create(
+    model=MODEL,
+    messages=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": full_user_prompt},
+    ],
+    temperature=0.0,
+    response_format={"type": "json_schema", "json_schema": USER_STANCE_SCHEMA},
+)
+
+if not completion.choices[0].message.content:
+    raise ValueError("No content in completion")
+
+pred = StancePrediction.model_validate(
+    json.loads(completion.choices[0].message.content)
+)
+
+print(f"Prompt: {full_user_prompt}")
+print(pred.model_dump_json(indent=2))
+print("-" * 5)
+
+# %%

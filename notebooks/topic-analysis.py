@@ -4,12 +4,15 @@ import datetime
 import os
 import typing as t
 
+import langid
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from pydantic import BaseModel, ValidationError
 
 from bsky_net import Post, jsonl, records
+
+# TODO: Only run on English posts
 
 # Constants
 BATCH_DIR = "../data/batches/cot-moderation-2023-05-24_2023-05-28"
@@ -85,8 +88,11 @@ for record in records(STREAM_DIR, start_date="2023-05-24", end_date="2023-05-28"
         continue
 
     post = record
-
     on_topic = False
+    is_english = langid.classify(post["text"])[0] == "en"
+
+    if not is_english:
+        continue
 
     # Assign replies label of root
     if "reply" in post and post["reply"]:
@@ -161,9 +167,9 @@ sns.set_context("poster")
 fig, ax = plt.subplots(figsize=(16, 9))
 sns.lineplot(x=df.index, y=df["on_topic_pct"], ax=ax)
 
-ax.set_title("Percentage of Posts Related to Bluesky Moderation Decisions")
+ax.set_title("Percentage of English Posts Related to Bluesky Moderation Decisions")
 ax.set_xlabel("Time")
-ax.set_ylabel("Percentage of Posts")
+ax.set_ylabel("Percentage of English Posts")
 
 sns.despine()
 
@@ -174,3 +180,34 @@ print("Total posts during period:", df["total"].sum())
 print(
     f"On-topic posts during period: {df['on_topic'].sum()} ({df['on_topic'].sum() / df['total'].sum() * 100:.2f}%)"
 )
+
+# %% Get number of on-topic posts per user
+
+posts_df = pd.DataFrame([post.model_dump() for post in posts])
+
+on_topic = posts_df[posts_df["on_topic"]]
+
+print("Total unique posters:", len(posts_df["did"].unique()))
+print(
+    f"Total unique posters who made on-topic posts: {len(on_topic['did'].unique())} ({len(on_topic['did'].unique()) / len(posts_df['did'].unique()) * 100:.2f}%)"
+)
+print(
+    f"Average number of on-topic posts per posting user: {len(on_topic) / len(on_topic['did'].unique()):.2f}"
+)
+
+print("Max on-topic posts by a single user:", on_topic["did"].value_counts().max())
+
+# %%
+
+DID = "did:plc:xgjcudwc5yk4z2uex5v6e7bl"
+
+user_df = posts_df[(posts_df["did"] == DID) & (posts_df["on_topic"])]
+user_df = user_df[["text", "uri", "createdAt"]]
+
+# %%
+
+pred = langid.classify("hey")
+
+print(pred)
+
+# %%
