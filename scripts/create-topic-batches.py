@@ -4,7 +4,7 @@ import os
 import boto3
 from dotenv import load_dotenv
 
-from bsky_net import Post, prompts, records
+from bsky_net import Post, Prompts, records
 
 load_dotenv()
 
@@ -13,13 +13,13 @@ STREAM_PATH = "data/raw/stream-2023-07-01"
 LOCAL_DIR = "data/batches"
 BUCKET_NAME = "main"
 BUCKET_DIR = "bsky-net/batches"
-BATCH_DESCRIPTION = "cot-moderation-2023-05-24_2023-05-28"
+BATCH_DESCRIPTION = "cot-moderation-topic-stance-2023-05-28"
 
-START_DATE = "2023-05-24"
+START_DATE = "2022-11-17"
 END_DATE = "2023-05-28"
 
 MODEL = "gpt-4o-mini"
-BATCH_MAX_N = 49_900
+BATCH_MAX_N = 49_990
 BATCH_QUEUE_MAX_TOKENS = 19_000_000
 
 AVG_TOKENS_PER_POST = 90
@@ -74,13 +74,13 @@ for record in records(
             "body": {
                 "model": MODEL,
                 "messages": [
-                    {"role": "system", "content": prompts.Topic.SYSTEM},
+                    {"role": "system", "content": Prompts.TopicStance.SYSTEM},
                     {"role": "user", "content": post["text"]},
                 ],
                 "temperature": 0.0,
                 "response_format": {
                     "type": "json_schema",
-                    "json_schema": prompts.Topic.OUTPUT_SCHEMA,
+                    "json_schema": Prompts.TopicStance.OUTPUT_SCHEMA,
                 },
             },
         }
