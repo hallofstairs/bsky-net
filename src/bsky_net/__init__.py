@@ -254,3 +254,38 @@ Include quotes from the text that you used to reach your answer."""
                 },
             },
         }
+
+    class TopicStance:
+        SYSTEM: str = """You are an NLP expert, tasked with performing opinion mining on posts from the Bluesky social network. Your goal is to detect the post author's opinion on the Bluesky team's approach thus far to moderation and trust and safety (T&S) on their platform. 
+
+If the post is unrelated to moderation on Bluesky, indicate that the post is 'off-topic'.
+
+If the post is on-topic, classify if the post is defending/sympathizing with THE BLUESKY TEAM and its moderation efforts (favor), criticizing them (against), or neither (none). If the post's opinion is not directed towards the Bluesky team's moderation approach, even if it's on-topic, indicate that the opinion is 'none'.
+
+Guide the user through your classification step by step, citing specific quotes from the text."""
+
+        OUTPUT_SCHEMA: JSONSchema = {
+            "name": "opinion_mining",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "required": ["reasoning", "on_topic", "opinion"],
+                "additionalProperties": False,
+                "properties": {
+                    "reasoning": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["quote", "conclusion"],
+                            "properties": {
+                                "quote": {"type": "string"},
+                                "conclusion": {"type": "string"},
+                            },
+                            "additionalProperties": False,
+                        },
+                    },
+                    "on_topic": {"type": "boolean"},
+                    "opinion": {"enum": ["favor", "against", "none"], "type": "string"},
+                },
+            },
+        }
