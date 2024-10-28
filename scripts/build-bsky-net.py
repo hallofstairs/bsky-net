@@ -4,7 +4,7 @@ from bsky_net import TimeFormat, records, truncate_timestamp
 
 # Constants
 WINDOW_SIZE = TimeFormat.hourly
-OUTPUT_PATH = f"data/processed/bsky-net-{WINDOW_SIZE.value}.json"
+OUTPUT_PATH = f"data/processed/bsky-net-{WINDOW_SIZE.name}.json"
 
 STREAM_DIR = "data/raw/stream-2023-07-01"
 OPINIONS_PATH = "data/processed/expressed-opinion-uris-2023-05-24_2023-05-28.txt"
