@@ -3,6 +3,7 @@ import sys
 import time
 import typing as t
 from datetime import datetime, timedelta
+from enum import Enum
 
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 
@@ -154,6 +155,23 @@ Record = Post | Follow | Repost | Like | Block | Profile
 
 
 # === Data utils ===
+
+
+class TimeFormat(str, Enum):
+    minute = "%Y-%m-%dT%H:%M"
+    hourly = "%Y-%m-%dT%H"
+    daily = "%Y-%m-%d"
+    weekly = "%Y-%W"
+    monthly = "%Y-%m"
+
+
+def truncate_timestamp(timestamp: str, format: TimeFormat) -> str:
+    """
+    Get the relevant subset of a timestamp for a given grouping.
+
+    e.g. "2023-01-01" for "daily, "2023-01" for "monthly"
+    """
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).strftime(format)
 
 
 def did_from_uri(uri: str) -> str:
