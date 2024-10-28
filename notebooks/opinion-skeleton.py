@@ -4,8 +4,9 @@ import json
 import random
 import typing as t
 from datetime import datetime
+from enum import Enum
 
-from bsky_net import Node, Post, did_from_uri, records
+from bsky_net import Post, did_from_uri, records
 
 # Constants
 STREAM_DIR = "../data/raw/chron-stream-2023-07-01"
@@ -47,17 +48,19 @@ class UserTimestep(t.TypedDict):
     consumed: dict[str, Impression]
 
 
-class TimeFormat:
+class TimeFormat(str, Enum):
     hourly = "%Y-%m-%d-%H"
     daily = "%Y-%m-%d"
     weekly = "%Y-%W"
     monthly = "%Y-%m"
 
 
-graph: dict[str, Node] = {}
+graph: dict[str, dict] = {}
 impressions: dict[str, dict[str, UserTimestep]] = {}
 post_ref: dict[str, dict] = {}  # Store of all relevant posts
-time_period = TimeFormat.daily
+time_period: t.Literal["%Y-%m-%d-%H", "%Y-%m-%d", "%Y-%W", "%Y-%m"] = (
+    TimeFormat.daily.value
+)
 
 
 # TODO: Use OOP?
@@ -121,7 +124,7 @@ def add_reaction(
 
 # TODO: CHECK IF THIS WORKS CORRECTLY
 # TODO: IT"S NOT WORKING CORRECTLY
-for record in records(stream_dir="../data/raw/bluesky", end_date=END_DATE):
+for record in records("../data/raw/bluesky", end_date=END_DATE):
     time_key = get_time_key(record["createdAt"], time_period)
 
     # Initialize time period, if needed
