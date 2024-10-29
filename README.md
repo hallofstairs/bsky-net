@@ -1,4 +1,4 @@
-# ${\normalsize B}{\footnotesize SKY-}{\normalsize N}{\footnotesize ET}$
+# ${\normalsize B}{\small SKY-}{\normalsize N}{\small ET}$
 
 🚧 _Under development_ 🚧
 
