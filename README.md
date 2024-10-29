@@ -1,4 +1,4 @@
-# bsky-net
+# ${\normalsize B}{\footnotesize SKY-}{\normalsize N}{\footnotesize ET}$
 
 🚧 _Under development_ 🚧
 
