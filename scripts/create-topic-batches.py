@@ -2,6 +2,7 @@ import json
 import os
 
 import boto3
+import langid
 from dotenv import load_dotenv
 
 from bsky_net import Post, Prompts, records
@@ -13,7 +14,7 @@ STREAM_PATH = "data/raw/stream-2023-07-01"
 LOCAL_DIR = "data/batches"
 BUCKET_NAME = "main"
 BUCKET_DIR = "bsky-net/batches"
-BATCH_DESCRIPTION = "cot-moderation-topic-stance-2023-05-28"
+BATCH_DESCRIPTION = "en-moderation-topic-stance-2023-05-28"
 
 START_DATE = "2022-11-17"
 END_DATE = "2023-05-28"
@@ -42,6 +43,13 @@ def upload_file(file_path: str):
     print(f"File {file_path} uploaded successfully to {BUCKET_NAME}/{obj_name}")
 
 
+def is_english(text: str) -> bool:
+    return langid.classify(text)[0] == "en"
+
+
+# TODO: Verify that post has actual text (not only links, empty, etc.)
+
+
 if os.path.exists(f"{LOCAL_DIR}/{BATCH_DESCRIPTION}"):
     raise ValueError(f"Batch folder '{BATCH_DESCRIPTION}' already exists.")
 
@@ -65,6 +73,10 @@ for record in records(
 
         # Ignore embeds (for now)
         if "embed" in post and post["embed"]:
+            continue
+
+        # Ignore non-English posts (for now)
+        if not is_english(post["text"]):
             continue
 
         batch_obj = {

@@ -3,21 +3,22 @@ import json
 from bsky_net import TimeFormat, records, truncate_timestamp
 
 # Constants
-WINDOW_SIZE = TimeFormat.hourly
+WINDOW_SIZE = TimeFormat.daily
 OUTPUT_PATH = f"data/processed/bsky-net-{WINDOW_SIZE.name}.json"
 
 STREAM_DIR = "data/raw/stream-2023-07-01"
-OPINIONS_PATH = "data/processed/expressed-opinion-uris-2023-05-24_2023-05-28.txt"
+OPINIONS_PATH = "data/processed/en-moderation-topic-stance-2023-05-28-zipped.json"
 
 # Load list of post URIs with expressed opinions
 with open(OPINIONS_PATH, "r") as f:
-    expressed_opinions = dict(line.strip().split(",") for line in f)
+    expressed_opinions = json.load(f)
 
 # Build graph
 bsky_net_graph = {}
 follow_graph: dict[str, list[str]] = {}
 on_topic_post_ref: dict[str, dict] = {}
 
+# TODO: Only iterate through records from the batch
 # Iterate through records
 for record in records(STREAM_DIR, end_date="2023-05-28"):
     did = record["did"]
