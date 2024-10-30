@@ -1,128 +1,161 @@
 # %% Imports
 
 import json
+import random
 import typing as t
 from collections import Counter
 
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+
+from bsky_net import TimeFormat
 
 # %% Helpers
 
+ExpressedOpinion = t.Literal["favor", "against", "none"]
+InternalOpinion = t.Literal["favor", "against"]
 
-class RecordInfo(t.TypedDict):
-    opinion: str
+
+class OnTopicEdge(t.TypedDict):
+    opinion: ExpressedOpinion
     createdAt: str
 
 
 class UserActivity(t.TypedDict):
-    seen: dict[str, RecordInfo]
-    liked: dict[str, RecordInfo]
+    seen: dict[str, OnTopicEdge]
+    liked: dict[str, ExpressedOpinion]
 
 
+# TODO: Make these types include off-topic posts
 BskyNetGraph: t.TypeAlias = dict[str, dict[str, UserActivity]]
+
 
 # %% Load graph from data/processed
 
-with open("../data/processed/bsky-net-test-daily.json", "r") as json_file:
+time_step_size = TimeFormat.daily
+
+with open(f"../data/processed/bsky-net-{time_step_size.name}.json", "r") as json_file:
     bsky_net: BskyNetGraph = json.load(json_file)
 
 
 # %% Simulate
 
 
-def majority_vote(records: list[RecordInfo]) -> str:
-    counts = Counter(record["opinion"] for record in records)
-    return max(counts, key=lambda x: counts[x])
+def majority_rule(
+    opinions: list[ExpressedOpinion], curr_opinion: InternalOpinion
+) -> InternalOpinion:
+    counts = Counter(opinions)
+
+    if counts["favor"] > counts["against"]:
+        return "favor"
+    elif counts["against"] > counts["favor"]:
+        return "against"
+
+    return curr_opinion
 
 
-opinion_history: dict[str, dict[str, dict[str, t.Optional[str]]]] = {}
-# prev_step = ""
+time_steps = list(bsky_net.keys())
 
-for step, data in bsky_net.items():
-    opinion_history[step] = {}
+# Initialize empty opinion states
+internal_opinions: dict[str, InternalOpinion] = {}
 
-    for did, activity in data.items():
-        if not activity["seen"]:
-            continue
-
-        # prev_opinion = opinion_history.get(prev_step, {}).get(did, "none")
-
-        pred_opinion = majority_vote(list(activity["seen"].values()))
-        true_opinion = (
-            majority_vote(list(activity["liked"].values()))
-            if activity["liked"]
-            else None
-        )
-
-        opinion_history[step][did] = {"true": true_opinion, "pred": pred_opinion}
-        # prev_step = step
-
-# %% Plot
-
-steps = sorted(opinion_history.keys())[-4:]
-opinions = ["favor", "against", "none"]
-
-
-opinion_counts = {
-    "favor": [],
-    "against": [],
-    "none": [],
+# Initialize opinion history log (for plotting)
+history: dict[str, list[int]] = {
+    "favor": [0] * len(time_steps),
+    "against": [0] * len(time_steps),
+    "total": [0] * len(time_steps),
+    "posts": [0] * len(time_steps),
 }
 
-for step in steps[-4:]:
-    step_counts = Counter()
+# Iterate over each time step
+for step, active_users in enumerate(bsky_net.values()):
+    existing_users = set(internal_opinions.keys())
+    new_users = set(active_users.keys()) - existing_users
 
-    for did, opinion in opinion_history[step].items():
-        pred_opinion = opinion["pred"]
+    # Initialize new users with random opinions
+    for user_id in new_users:
+        internal_opinions[user_id] = random.choice(["favor", "against"])
 
-        if pred_opinion:
-            step_counts[pred_opinion] += 1
-            step_counts["total"] += 1
+    seen_posts = set()
 
-    for opinion in opinions:
-        if step_counts["total"] > 0:
-            opinion_counts[opinion].append(
-                step_counts[opinion] / step_counts["total"] * 100
-            )
-        else:
-            opinion_counts[opinion].append(0)
+    # Iterate over all users
+    for did in internal_opinions:
+        # If user didn't see any posts, keep their opinion the same
+        if did not in active_users:
+            history[internal_opinions[did]][step] += 1
+            continue
+
+        # If a user sees posts, update their opinion based on majority vote
+        activity = active_users[did]
+
+        # Get the opinions expressed by neighbors
+        expressed_opinions: list[ExpressedOpinion] = [
+            post["opinion"] for post in activity["seen"].values() if post["opinion"]
+        ]
+
+        # Get user's current opinion
+        current_opinion = internal_opinions[did]
+
+        # Update user's opinion using majority rule
+        new_opinion = majority_rule(expressed_opinions, current_opinion)
+
+        # Log opinions, history
+        internal_opinions[did] = new_opinion
+        history[new_opinion][step] += 1
+        seen_posts.update(activity["seen"].keys())
+
+    history["total"][step] = len(internal_opinions)
+    history["posts"][step] = len(seen_posts)
+
+print(
+    f"Breakdown of opinions at t={time_steps[-1]}: {json.dumps(Counter(internal_opinions.values()), indent=2)}"
+)
 
 
-plt.figure(figsize=(10, 6))
+# %% Plot results
 
-for opinion in opinions:
-    plt.plot(steps, opinion_counts[opinion], label=opinion)
+history_norm = {
+    "favor": [
+        count / history["total"][idx] if history["total"][idx] != 0 else 0
+        for idx, count in enumerate(history["favor"])
+    ],
+    "against": [
+        count / history["total"][idx] if history["total"][idx] != 0 else 0
+        for idx, count in enumerate(history["against"])
+    ],
+}
 
-plt.xlabel("Time Step")
-plt.ylabel("Percentage")
-plt.title("Opinion History Over Time")
-plt.legend()
-plt.xticks(rotation=45)
+subplot: tuple[Figure, list[Axes]] = plt.subplots(3, 1, figsize=(10, 12))
+fig, axs = subplot
+
+# Plot volume of posts
+axs[0].plot(time_steps, history["posts"], color="tab:orange")
+axs[0].set_xlabel("Day")
+axs[0].set_ylabel("Count")
+axs[0].set_title("Volume of Moderation-Related Posts")
+axs[0].set_xticks(time_steps[::10])
+axs[0].tick_params(axis="x", rotation=45)
+
+# Plot normalized opinions
+axs[1].plot(time_steps, history_norm["favor"], label="favor", color="tab:blue")
+axs[1].plot(time_steps, history_norm["against"], label="against", color="tab:red")
+axs[1].set_xlabel("Day")
+axs[1].set_ylabel("Percentage")
+axs[1].set_title("Opinion Distribution (majority rule)")
+axs[1].legend()
+axs[1].set_xticks(time_steps[::10])
+axs[1].tick_params(axis="x", rotation=45)
+
+# Plot total users
+axs[2].plot(time_steps, history["total"], color="tab:orange")
+axs[2].set_xlabel("Day")
+axs[2].set_ylabel("Count")
+axs[2].set_title("Total Users in Moderation-Related Subgraph")
+axs[2].set_xticks(time_steps[::10])
+axs[2].tick_params(axis="x", rotation=45)
+
 plt.tight_layout()
 plt.show()
 
 # %%
-
-# Evaluation calculations - when true is not None, how often do pred and true agree
-
-total_evaluations = 0
-agreement_count = 0
-
-for step in opinion_history:
-    for did, opinions in opinion_history[step].items():
-        true_opinion = opinions["true"]
-        pred_opinion = opinions["pred"]
-
-        if true_opinion is not None:
-            total_evaluations += 1
-            if true_opinion == pred_opinion:
-                agreement_count += 1
-
-if total_evaluations > 0:
-    agreement_percentage = (agreement_count / total_evaluations) * 100
-else:
-    agreement_percentage = 0
-
-print(f"Total evaluations: {total_evaluations}")
-print(f"Agreements: {agreement_count}")
-print(f"Agreement percentage: {agreement_percentage:.2f}%")
