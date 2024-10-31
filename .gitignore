@@ -9,6 +9,8 @@ __pycache__/
 data/
 stream/
 
+_build/
+
 dev/
 
 graph_tool/
