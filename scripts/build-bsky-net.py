@@ -1,28 +1,32 @@
 import json
+import sys
 
 from bsky_net import TimeFormat, records, truncate_timestamp
 
 # Constants
-WINDOW_SIZE = TimeFormat.daily
-OUTPUT_PATH = f"data/processed/bsky-net-{WINDOW_SIZE.name}.json"
+WINDOW_SIZE = TimeFormat[sys.argv[1]]
+OUTPUT_PATH = f"../data/processed/bsky-net-{WINDOW_SIZE.name}.json"
 
-STREAM_DIR = "data/raw/stream-2023-07-01"
-OPINIONS_PATH = "data/processed/en-moderation-topic-stance-2023-05-28-zipped.json"
+STREAM_DIR = "../data/raw/stream-2023-07-01"
+OPINIONS_PATH = "../data/processed/en-moderation-topic-stance-2023-05-28-zipped.json"
 
 # Load list of post URIs with expressed opinions
 with open(OPINIONS_PATH, "r") as f:
-    expressed_opinions = json.load(f)
+    expressed_opinions: dict[str, str] = json.load(f)
 
 # Build graph
 bsky_net_graph = {}
 follow_graph: dict[str, list[str]] = {}
-on_topic_post_ref: dict[str, dict] = {}
+opinion_post_info: dict[str, dict] = {}
 
-# TODO: Only iterate through records from the batch
 # Iterate through records
-for record in records(STREAM_DIR, end_date="2023-05-28"):
+for record in records(STREAM_DIR, log=False):
     did = record["did"]
     window = truncate_timestamp(record["createdAt"], WINDOW_SIZE)
+
+    if len(opinion_post_info) == len(expressed_opinions):
+        print("All labeled posts covered, exiting...")
+        break
 
     if window not in bsky_net_graph:
         bsky_net_graph[window] = {}
@@ -43,10 +47,10 @@ for record in records(STREAM_DIR, end_date="2023-05-28"):
     if record["$type"] == "app.bsky.feed.like":
         subject_uri = record["subject"]["uri"]
 
-        if subject_uri not in on_topic_post_ref:
+        if subject_uri not in opinion_post_info:
             continue
 
-        post_info = on_topic_post_ref[subject_uri]
+        post_info = opinion_post_info[subject_uri]
 
         # Ignore posts not from following (for now)
         if did not in bsky_net_graph[window]:
@@ -79,14 +83,32 @@ for record in records(STREAM_DIR, end_date="2023-05-28"):
             continue
 
         followers: list[str] = follow_graph.get(record["did"], [])
-        on_topic_post_ref[record["uri"]] = {
+        opinion_post_info[record["uri"]] = {
+            "opinion": opinion,
+            "createdAt": record["createdAt"],
+        }
+
+        if did not in bsky_net_graph[window]:
+            bsky_net_graph[window][did] = {
+                "seen": {},
+                "posted": {},
+                "liked": {},
+            }
+
+        # TODO: Make this have `labels` key and `info` key
+        bsky_net_graph[window][did]["posted"][record["uri"]] = {
+            "text": record["text"],  # For debugging
             "opinion": opinion,
             "createdAt": record["createdAt"],
         }
 
         for follower_did in followers:
             if follower_did not in bsky_net_graph[window]:
-                bsky_net_graph[window][follower_did] = {"seen": {}, "liked": {}}
+                bsky_net_graph[window][follower_did] = {
+                    "seen": {},
+                    "posted": {},
+                    "liked": {},
+                }
 
             bsky_net_graph[window][follower_did]["seen"][record["uri"]] = {
                 "opinion": opinion,

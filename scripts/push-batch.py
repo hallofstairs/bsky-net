@@ -1,16 +1,17 @@
 import os
+import sys
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
 
-BATCH_DESCRIPTION = "en-moderation-topic-stance-2023-05-28"
-BATCH_IDX = 2
+BATCH_DESCRIPTION = "en-moderation-topic-stance-2023-05-28-V2"
+BATCH_IDX = sys.argv[1]
 
 FILE_PATH = f"data/batches/{BATCH_DESCRIPTION}/in/{BATCH_IDX}.jsonl"
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY_BLUESKY"))
 
 
 def push_batch(path: str):
