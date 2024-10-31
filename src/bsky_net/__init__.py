@@ -28,7 +28,7 @@ class jsonl[T]:
 def records(
     stream_path: str = "../data/raw/stream-2023-07-01",
     start_date: str = "2022-11-17",
-    end_date: str = "2023-05-01",
+    end_date: str = "2023-07-01",
     log: bool = True,
 ) -> t.Generator["Record", None, None]:
     """
@@ -182,6 +182,40 @@ def did_from_uri(uri: str) -> str:
         return uri.split("/")[2]
     except Exception:
         raise ValueError(f"\nMisformatted URI: {uri}")
+
+
+def rkey_from_uri(uri: str) -> str:
+    return uri.split("/")[-1]
+
+
+class s32:
+    S32_CHAR = "234567abcdefghijklmnopqrstuvwxyz"
+
+    @classmethod
+    def encode(cls, i: int) -> str:
+        s = ""
+        while i:
+            c = i % 32
+            i = i // 32
+            s = s32.S32_CHAR[c] + s
+        return s
+
+    @classmethod
+    def decode(cls, s: str) -> int:
+        i = 0
+        for c in s:
+            i = i * 32 + s32.S32_CHAR.index(c)
+        return i
+
+
+def parse_rkey(rev: str) -> tuple[datetime, int]:
+    """Extract the data from the rkey of a URI"""
+
+    timestamp = s32.decode(rev[:-2])  # unix, microseconds
+    clock_id = s32.decode(rev[-2:])
+
+    timestamp = datetime.fromtimestamp(timestamp / 1_000_000)
+    return timestamp, clock_id
 
 
 # === Prompts ===
