@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from bsky_net import TimeFormat
+from bsky_net import TimeFormat, did_from_uri
 
 # %% Helpers
 
@@ -17,14 +17,19 @@ ExpressedOpinion = t.Literal["favor", "against", "none"]
 InternalOpinion = t.Literal["favor", "against"]
 
 
-class OnTopicEdge(t.TypedDict):
+class OnTopicRecord(t.TypedDict):
     opinion: ExpressedOpinion
     createdAt: str
 
 
+class OnTopicPost(OnTopicRecord):
+    text: str
+
+
 class UserActivity(t.TypedDict):
-    seen: dict[str, OnTopicEdge]
-    liked: dict[str, ExpressedOpinion]
+    seen: dict[str, OnTopicRecord]
+    posted: dict[str, OnTopicPost]
+    liked: dict[str, OnTopicRecord]
 
 
 # TODO: Make these types include off-topic posts
@@ -67,6 +72,8 @@ history: dict[str, list[int]] = {
     "total": [0] * len(time_steps),
     "posts": [0] * len(time_steps),
 }
+
+# TODO: See how often the expressed opinion differs from the internal one
 
 # Iterate over each time step
 for step, active_users in enumerate(bsky_net.values()):
@@ -157,5 +164,21 @@ axs[2].tick_params(axis="x", rotation=45)
 
 plt.tight_layout()
 plt.show()
+
+# %%
+
+PAUL_DID = "did:plc:ragtjsm2j2vknwkz3zp4oxrd"
+STORE_BRAND_DID = ""
+
+post_counts = Counter()
+internal_opinion_log = []
+
+for step, data in bsky_net.items():
+    for did, activity in data.items():
+        post_counts[did] += len(activity["posted"])
+        # print([post["text"] for post in user_posts.values()])
+
+        # opinions = [post["opinion"] for post in user_posts.values()]
+        # internal_opinion_log.append(opinions)
 
 # %%
