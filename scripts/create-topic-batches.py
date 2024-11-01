@@ -9,7 +9,7 @@ from bsky_net import Post, Prompts, records
 load_dotenv()
 
 # Constants
-STREAM_PATH = "data/raw/stream-2023-07-01"
+STREAM_PATH = "data/raw/en-stream-2023-07-01"
 LOCAL_DIR = "data/batches"
 BUCKET_NAME = "main"
 BUCKET_DIR = "bsky-net/batches"
