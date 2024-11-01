@@ -1,48 +1,71 @@
 # %% Imports
 
 import json
+import os
 import random
 import typing as t
 from collections import Counter
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from bsky_net import TimeFormat
+from bsky_net import TimeFormat, tq
 
 # %% Helpers
 
 ExpressedOpinion = t.Literal["favor", "against", "none"]
 InternalOpinion = t.Literal["favor", "against"]
-
 Label = tuple[str, ExpressedOpinion]
 
 
-class LabeledRecord(t.TypedDict):
+class LabeledReaction(t.TypedDict):
     labels: list[Label]
     createdAt: str
 
 
-class LabeledPost(LabeledRecord):
-    text: str
+class LabeledPost(t.TypedDict):
+    labels: list[Label]
+    createdAt: str
+
+
+LabeledRecord = LabeledReaction | LabeledPost
 
 
 class UserActivity(t.TypedDict):
     seen: dict[str, LabeledRecord]
-    posted: dict[str, LabeledPost]
+    posted: dict[str, LabeledRecord]
     liked: dict[str, LabeledRecord]
 
 
 BskyNetGraph: t.TypeAlias = dict[str, dict[str, UserActivity]]
 
 
-# %% Load graph from data/processed
+class BskyNet:
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.time_steps = self.calc_time_steps()
 
-time_step_size = TimeFormat.daily
+    def simulate(
+        self,
+    ) -> t.Generator[tuple[int, dict[str, UserActivity]], None, None]:
+        for i, time_step in enumerate(tq(sorted(os.listdir(self.path)))):
+            with open(f"{self.path}/{time_step}", "r") as json_file:
+                yield i, json.load(json_file)
 
-with open(f"../data/processed/bsky-net-{time_step_size.name}.json", "r") as json_file:
-    bsky_net: BskyNetGraph = json.load(json_file)
+    def calc_time_steps(self) -> list[str]:
+        return [Path(f).stem for f in sorted(os.listdir(self.path))]
+
+    def get_opinions(
+        self, topic: str, records: dict[str, LabeledRecord]
+    ) -> list[ExpressedOpinion]:
+        return [
+            rec_opinion
+            for rec in records.values()
+            for rec_topic, rec_opinion in rec["labels"]
+            if rec_topic == topic
+        ]
 
 
 # %% Model examples
@@ -75,7 +98,11 @@ def random_rule(
 
 # %% Simulate
 
-time_steps = list(bsky_net.keys())
+bsky_net = BskyNet("../data/processed/bsky-net-daily")
+time_steps = bsky_net.time_steps
+
+# NOTE: bsky-net currently ignores: replies, quotes, non-english posts, etc
+# TODO: bsky-net is wrong for some reason?
 
 # Initialize empty opinion states
 internal_opinions: dict[str, InternalOpinion] = {}
@@ -92,7 +119,7 @@ history: dict[str, list[int]] = {
 }
 
 # Iterate over each time step
-for step, active_users in enumerate(bsky_net.values()):
+for step, active_users in bsky_net.simulate():
     existing_users = set(internal_opinions.keys())
     new_users = set(active_users.keys()) - existing_users
 
@@ -105,37 +132,32 @@ for step, active_users in enumerate(bsky_net.values()):
 
     # Iterate over all users
     for did in internal_opinions:
-        # If user didn't see any posts, keep their opinion the same
+        # User didn't have any activity during time step -- keep opinion the same
         if did not in active_users:
             history[internal_opinions[did]][step] += 1
             continue
 
-        # If a user sees posts, update their opinion based on majority vote
+        # Get user's activity during time step -- posts observed, created, liked
         activity = active_users[did]
 
-        # Log all posts during timestep
+        # Get opinions expressed by neighbors
+        observed_moderation_opinions: list[ExpressedOpinion] = bsky_net.get_opinions(
+            topic="moderation", records=activity["seen"]
+        )
+
+        # Get opinions expressed by user: "ground truth"
+        expressed_moderation_opinions: list[ExpressedOpinion] = bsky_net.get_opinions(
+            topic="moderation", records=activity["posted"]
+        )
+
+        # LOGGING -- for plotting
         all_posts.update(activity["posted"].keys())
         for uri, post in activity["posted"].items():
             for topic, _ in post["labels"]:
                 if topic == "moderation":
                     moderation_posts.add(uri)
 
-        # Get opinions expressed by neighbors
-        observed_moderation_opinions: list[ExpressedOpinion] = [
-            opinion
-            for post in activity["seen"].values()
-            for topic, opinion in post["labels"]
-            if topic == "moderation"
-        ]
-
-        # Get opinions expressed by user
-        expressed_moderation_opinions: list[ExpressedOpinion] = [
-            opinion
-            for post in activity["posted"].values()
-            for topic, opinion in post["labels"]
-            if topic == "moderation" and opinion != "none"
-        ]
-
+        # User observed no opinions -- don't update
         if not observed_moderation_opinions:
             history[internal_opinions[did]][step] += 1
             continue
@@ -143,18 +165,22 @@ for step, active_users in enumerate(bsky_net.values()):
         # Get user's current opinion
         current_opinion = internal_opinions[did]
 
-        # Update user's opinion using majority rule
+        # Update user's current opinion using majority rule
         pred_opinion = majority_rule(observed_moderation_opinions, current_opinion)
 
+        # Check accuracy of model prediction against "ground truth" expressed opinion
         if expressed_moderation_opinions:
             true_opinion = majority_rule(expressed_moderation_opinions, current_opinion)
             history["expressed_match"][step] += 1 if pred_opinion == true_opinion else 0
             history["expressed_total"][step] += 1
 
-        # Log opinions, history
+        # Update opinion state
         internal_opinions[did] = pred_opinion
+
+        # LOGGING
         history[pred_opinion][step] += 1
 
+    # MORE LOGGING
     history["total_opinions"][step] = len(internal_opinions)
     history["total_posts"][step] = len(all_posts)
     history["moderation_posts"][step] = len(moderation_posts)
@@ -169,7 +195,6 @@ time_steps_trunc = time_steps[start_idx:]
 
 for key, value in history.items():
     history[key] = value[start_idx:]
-
 
 # %% Plot results
 
