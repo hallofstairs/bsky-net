@@ -5,10 +5,10 @@ from bsky_net import TimeFormat, records, truncate_timestamp
 
 # Constants
 WINDOW_SIZE = TimeFormat[sys.argv[1]]
-OUTPUT_PATH = f"../data/processed/bsky-net-{WINDOW_SIZE.name}.json"
+OUTPUT_PATH = f"data/processed/bsky-net-{WINDOW_SIZE.name}.json"
 
-STREAM_DIR = "../data/raw/stream-2023-07-01"
-OPINIONS_PATH = "../data/processed/en-moderation-topic-stance-2023-05-28-zipped.json"
+STREAM_DIR = "data/raw/stream-2023-07-01"
+OPINIONS_PATH = "data/processed/en-moderation-topic-stance-2023-05-28-V2-zipped.json"
 
 # Load list of post URIs with expressed opinions
 with open(OPINIONS_PATH, "r") as f:
@@ -62,7 +62,7 @@ for record in records(STREAM_DIR, log=False):
             continue
 
         bsky_net_graph[window][did]["liked"][subject_uri] = {
-            "opinion": post_info["opinion"],
+            "labels": post_info["labels"],
             "createdAt": record["createdAt"],
         }
 
@@ -78,15 +78,15 @@ for record in records(STREAM_DIR, log=False):
 
         opinion = expressed_opinions.get(record["uri"], None)
 
-        # Ignore off-topic posts (for now)
-        if not opinion:
-            continue
-
         followers: list[str] = follow_graph.get(record["did"], [])
-        opinion_post_info[record["uri"]] = {
-            "opinion": opinion,
-            "createdAt": record["createdAt"],
-        }
+        post_labels = []
+
+        if opinion:
+            post_labels.append(("moderation", opinion))
+            opinion_post_info[record["uri"]] = {
+                "labels": post_labels,
+                "createdAt": record["createdAt"],
+            }
 
         if did not in bsky_net_graph[window]:
             bsky_net_graph[window][did] = {
@@ -95,11 +95,10 @@ for record in records(STREAM_DIR, log=False):
                 "liked": {},
             }
 
-        # TODO: Make this have `labels` key and `info` key
         bsky_net_graph[window][did]["posted"][record["uri"]] = {
             "text": record["text"],  # For debugging
-            "opinion": opinion,
             "createdAt": record["createdAt"],
+            "labels": post_labels,
         }
 
         for follower_did in followers:
@@ -111,7 +110,7 @@ for record in records(STREAM_DIR, log=False):
                 }
 
             bsky_net_graph[window][follower_did]["seen"][record["uri"]] = {
-                "opinion": opinion,
+                "labels": post_labels,
                 "createdAt": record["createdAt"],
             }
 

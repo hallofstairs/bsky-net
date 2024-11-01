@@ -7,7 +7,6 @@ import typing as t
 from collections import defaultdict
 from itertools import count
 
-import langid
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.shared_params.response_format_json_schema import JSONSchema
@@ -61,10 +60,6 @@ def get_subject_uri(post: Post) -> t.Optional[str]:
         return None
 
 
-def is_english(text: str) -> bool:
-    return langid.classify(text)[0] == "en"
-
-
 class Reasoning(BaseModel):
     quote: str
     conclusion: str
@@ -108,7 +103,7 @@ for record in records(STREAM_DIR, start_date="2023-05-24", end_date="2023-05-28"
     if record["$type"] != "app.bsky.feed.post":
         continue
 
-    if record["uri"] in on_topic_uris and is_english(record["text"]):
+    if record["uri"] in on_topic_uris:
         on_topic_en_uris.add(record["uri"])
 
 print(
@@ -161,7 +156,7 @@ for record in records(STREAM_DIR, start_date="2023-05-24", end_date="2023-05-28"
     if "reply" in post and post["reply"]:
         reply_uris = get_reply_uris(post)
 
-        if reply_uris.root in on_topic_en_uris and is_english(post["text"]):
+        if reply_uris.root in on_topic_en_uris:
             on_topic_posts[post["uri"]] = ReplyNode(
                 node_id=did_enums[post["did"]],
                 did=post["did"],
@@ -179,7 +174,7 @@ for record in records(STREAM_DIR, start_date="2023-05-24", end_date="2023-05-28"
         if not subject_uri:  # Not a quote post
             continue
 
-        if subject_uri in on_topic_en_uris and is_english(post["text"]):
+        if subject_uri in on_topic_en_uris:
             on_topic_posts[post["uri"]] = QuoteNode(
                 node_id=did_enums[post["did"]],
                 did=post["did"],
@@ -189,7 +184,7 @@ for record in records(STREAM_DIR, start_date="2023-05-24", end_date="2023-05-28"
             )
             continue
 
-    if post["uri"] in on_topic_en_uris and is_english(post["text"]):
+    if post["uri"] in on_topic_en_uris:
         on_topic_posts[post["uri"]] = OGNode(
             node_id=did_enums[post["did"]],
             did=post["did"],
