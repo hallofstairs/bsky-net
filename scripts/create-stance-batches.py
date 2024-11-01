@@ -18,7 +18,7 @@ load_dotenv()
 
 # Constants
 BATCH_DIR = "../data/batches/cot-moderation-2023-05-24_2023-05-28"
-STREAM_DIR = "../data/raw/stream-2023-07-01"
+STREAM_DIR = "../data/raw/en-stream-2023-07-01"
 LOCAL_DIR = "../data/batches"
 
 BATCH_DESCRIPTION = "cot-moderation-stance-2023-05-24_2023-05-28"

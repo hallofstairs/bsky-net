@@ -15,7 +15,7 @@ from bsky_net import Post, records
 load_dotenv()
 
 # Constants
-STREAM_DIR = "../data/raw/stream-2023-07-01"
+STREAM_DIR = "../data/raw/en-stream-2023-07-01"
 LABELS_DIR = "../data/processed/topic-labels"
 BATCH_DIR = "../data/batches"
 

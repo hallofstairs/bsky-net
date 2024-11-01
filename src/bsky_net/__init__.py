@@ -26,7 +26,7 @@ class jsonl[T]:
 
 
 def records(
-    stream_path: str = "../data/raw/stream-2023-07-01",
+    stream_path: str = "../data/raw/en-stream-2023-07-01",
     start_date: str = "2022-11-17",
     end_date: str = "2023-07-01",
     log: bool = True,

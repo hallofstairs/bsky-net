@@ -11,7 +11,7 @@ BATCH_IDX = sys.argv[1]
 
 FILE_PATH = f"data/batches/{BATCH_DESCRIPTION}/in/{BATCH_IDX}.jsonl"
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY_BLUESKY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def push_batch(path: str):

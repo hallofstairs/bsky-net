@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from bsky_net import jsonl
 
-BATCH_DESCRIPTION = "en-moderation-topic-stance-2023-05-28"
+BATCH_DESCRIPTION = "en-moderation-topic-stance-2023-05-28-V2"
 
 BATCH_OUTPUT_DIR = f"data/batches/{BATCH_DESCRIPTION}/out"
 

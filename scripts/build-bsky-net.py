@@ -7,7 +7,7 @@ from bsky_net import TimeFormat, records, truncate_timestamp
 WINDOW_SIZE = TimeFormat[sys.argv[1]]
 OUTPUT_PATH = f"data/processed/bsky-net-{WINDOW_SIZE.name}.json"
 
-STREAM_DIR = "data/raw/stream-2023-07-01"
+STREAM_DIR = "data/raw/en-stream-2023-07-01"
 OPINIONS_PATH = "data/processed/en-moderation-topic-stance-2023-05-28-V2-zipped.json"
 
 # Load list of post URIs with expressed opinions
