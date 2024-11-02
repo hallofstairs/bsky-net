@@ -1,13 +1,66 @@
 import json
+import os
 import sys
 import time
 import typing as t
 from datetime import datetime, timedelta
 from enum import Enum
+from pathlib import Path
 
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 
 T = t.TypeVar("T")
+
+ExpressedOpinion = t.Literal["favor", "against", "none"]
+InternalOpinion = t.Literal["favor", "against"]
+Label = tuple[str, ExpressedOpinion]
+
+
+class LabeledReaction(t.TypedDict):
+    labels: list[Label]
+    createdAt: str
+
+
+class LabeledPost(t.TypedDict):
+    labels: list[Label]
+    createdAt: str
+
+
+LabeledRecord = LabeledReaction | LabeledPost
+
+
+class UserActivity(t.TypedDict):
+    seen: dict[str, LabeledRecord]
+    posted: dict[str, LabeledRecord]
+    liked: dict[str, LabeledRecord]
+
+
+class BskyNet:
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.time_steps = self.calc_time_steps()
+
+    def simulate(
+        self, verbose: bool = True
+    ) -> t.Generator[tuple[int, dict[str, UserActivity]], None, None]:
+        for i, time_step in enumerate(
+            tq(sorted(os.listdir(self.path)), active=verbose)
+        ):
+            with open(f"{self.path}/{time_step}", "r") as json_file:
+                yield i, json.load(json_file)
+
+    def calc_time_steps(self) -> list[str]:
+        return [Path(f).stem for f in sorted(os.listdir(self.path))]
+
+    def get_opinions(
+        self, topic: str, records: dict[str, LabeledRecord]
+    ) -> list[ExpressedOpinion]:
+        return [
+            rec_opinion
+            for rec in records.values()
+            for rec_topic, rec_opinion in rec["labels"]
+            if rec_topic == topic
+        ]
 
 
 # === Iteration utils ===
