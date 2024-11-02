@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import sys
 
 from bsky_net import TimeFormat, records, truncate_timestamp
@@ -20,15 +22,15 @@ follow_graph: dict[str, list[str]] = {}
 opinion_post_info: dict[str, dict] = {}
 
 # Iterate through records
-for record in records(STREAM_DIR, log=False):
+for record in records(STREAM_DIR, end_date="2023-05-10"):
     did = record["did"]
     window = truncate_timestamp(record["createdAt"], WINDOW_SIZE)
 
-    if len(opinion_post_info) == len(expressed_opinions):
-        print("All labeled posts covered, exiting...")
-        break
-
     if window not in bsky_net_graph:
+        if len(opinion_post_info) == len(expressed_opinions):
+            print("All labeled posts covered, exiting...")
+            break
+
         bsky_net_graph[window] = {}
 
     # Process profile creation
@@ -114,6 +116,13 @@ for record in records(STREAM_DIR, log=False):
                 "createdAt": record["createdAt"],
             }
 
-# Write to file
-with open(OUTPUT_PATH, "w") as json_file:
-    json.dump(bsky_net_graph, json_file, indent=4)
+OUTPUT_DIR = f"data/processed/bsky-net-{WINDOW_SIZE.name}"
+
+# Clear the output directory
+if os.path.exists(OUTPUT_DIR):
+    shutil.rmtree(OUTPUT_DIR)
+os.makedirs(OUTPUT_DIR)
+
+for step, data in bsky_net_graph.items():
+    with open(f"{OUTPUT_DIR}/{step}.json", "w") as json_file:
+        json.dump(data, json_file, indent=4)
