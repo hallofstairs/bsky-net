@@ -9,7 +9,6 @@ __pycache__/
 data/
 stream/
 
-*_files/
 *.quarto_ipynb
 .jupyter_cache/
 
