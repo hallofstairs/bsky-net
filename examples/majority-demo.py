@@ -136,7 +136,7 @@ print(time_steps)
 
 """
 As seen in `bsky_net.time_steps`, the dataset currently includes all
-activities on Bluesky up to May 7, 2023.
+activities on Bluesky up to May 10, 2023.
 
 To iterate over each time step, we'll use `bsky_net.simulate()`:
 """

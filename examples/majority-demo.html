@@ -127,7 +127,7 @@ window.Quarto = {
 
 <p>This is a rough, elementary example walkthrough. I still need to work on the accuracy of the expressed belief classifications, and the dataset currently excludes replies, quotes, and non-English posts. So think of this as more of an explanation of the process than results to interpret.</p>
 <p>Belief classification improvement will be a continuous process.</p>
-<div id="e24bf547" class="cell" data-execution_count="2">
+<div id="c7089b01" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Imports</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
@@ -204,7 +204,7 @@ window.Quarto = {
 <section id="code" class="level3">
 <h3 class="anchored" data-anchor-id="code">Code</h3>
 <p>Below, I’ll be using a helper class, <code>BskyNet</code>, to parse the (quite large) <code>bsky-net</code> json file. All it’s really doing is helping me iterate over the data structure.</p>
-<div id="232a4fd2" class="cell" data-execution_count="3">
+<div id="0f62fd83" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>bsky_net <span class="op">=</span> BskyNet(<span class="st">"../data/processed/bsky-net-daily"</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>time_steps <span class="op">=</span> bsky_net.time_steps</span>
@@ -213,14 +213,14 @@ window.Quarto = {
 <pre><code>['2022-11-17', '2022-11-18', '2022-11-19', '2022-11-20', '2022-11-21', '2022-11-22', '2022-11-23', '2022-11-24', '2022-11-25', '2022-11-26', '2022-11-27', '2022-11-28', '2022-11-29', '2022-11-30', '2022-12-01', '2022-12-02', '2022-12-03', '2022-12-04', '2022-12-05', '2022-12-06', '2022-12-07', '2022-12-08', '2022-12-09', '2022-12-10', '2022-12-11', '2022-12-12', '2022-12-13', '2022-12-14', '2022-12-15', '2022-12-16', '2022-12-17', '2022-12-18', '2022-12-19', '2022-12-20', '2022-12-21', '2022-12-22', '2022-12-23', '2022-12-24', '2022-12-25', '2022-12-26', '2022-12-27', '2022-12-28', '2022-12-29', '2022-12-30', '2022-12-31', '2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05', '2023-01-06', '2023-01-07', '2023-01-08', '2023-01-09', '2023-01-10', '2023-01-11', '2023-01-12', '2023-01-13', '2023-01-14', '2023-01-15', '2023-01-16', '2023-01-17', '2023-01-18', '2023-01-19', '2023-01-20', '2023-01-21', '2023-01-22', '2023-01-23', '2023-01-24', '2023-01-25', '2023-01-26', '2023-01-27', '2023-01-28', '2023-01-29', '2023-01-30', '2023-01-31', '2023-02-01', '2023-02-02', '2023-02-03', '2023-02-04', '2023-02-05', '2023-02-06', '2023-02-07', '2023-02-08', '2023-02-09', '2023-02-10', '2023-02-11', '2023-02-12', '2023-02-13', '2023-02-14', '2023-02-15', '2023-02-16', '2023-02-17', '2023-02-18', '2023-02-19', '2023-02-20', '2023-02-21', '2023-02-22', '2023-02-23', '2023-02-24', '2023-02-25', '2023-02-26', '2023-02-27', '2023-02-28', '2023-03-01', '2023-03-02', '2023-03-03', '2023-03-04', '2023-03-05', '2023-03-06', '2023-03-07', '2023-03-08', '2023-03-09', '2023-03-10', '2023-03-11', '2023-03-12', '2023-03-13', '2023-03-14', '2023-03-15', '2023-03-16', '2023-03-17', '2023-03-18', '2023-03-19', '2023-03-20', '2023-03-21', '2023-03-22', '2023-03-23', '2023-03-24', '2023-03-25', '2023-03-26', '2023-03-27', '2023-03-28', '2023-03-29', '2023-03-30', '2023-03-31', '2023-04-01', '2023-04-02', '2023-04-03', '2023-04-04', '2023-04-05', '2023-04-06', '2023-04-07', '2023-04-08', '2023-04-09', '2023-04-10', '2023-04-11', '2023-04-12', '2023-04-13', '2023-04-14', '2023-04-15', '2023-04-16', '2023-04-17', '2023-04-18', '2023-04-19', '2023-04-20', '2023-04-21', '2023-04-22', '2023-04-23', '2023-04-24', '2023-04-25', '2023-04-26', '2023-04-27', '2023-04-28', '2023-04-29', '2023-04-30', '2023-05-01', '2023-05-02', '2023-05-03', '2023-05-04', '2023-05-05', '2023-05-06', '2023-05-07', '2023-05-08', '2023-05-09', '2023-05-10']</code></pre>
 </div>
 </div>
-<p>As seen in <code>bsky_net.time_steps</code>, the dataset currently includes all activities on Bluesky up to May 7, 2023.</p>
+<p>As seen in <code>bsky_net.time_steps</code>, the dataset currently includes all activities on Bluesky up to May 10, 2023.</p>
 <p>To iterate over each time step, we’ll use <code>bsky_net.simulate()</code>:</p>
-<div id="e7222175" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step, active_users <span class="kw">in</span> bsky_net.simulate(verbose<span class="op">=</span><span class="va">False</span>):</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>time_steps[step]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">len</span>(active_users)<span class="sc">}</span><span class="ss"> active users)</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<div id="3f7d6852" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step, user_activity <span class="kw">in</span> bsky_net.simulate(verbose<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>time_steps[step]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">len</span>(user_activity)<span class="sc">}</span><span class="ss"> users with activity)</span><span class="ch">\n</span><span class="ss">"</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">break</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2022-11-17 (8 active users)
+<pre><code>2022-11-17 (8 users with activity)
 </code></pre>
 </div>
 </div>
@@ -232,7 +232,7 @@ window.Quarto = {
 <section id="model-definition" class="level3">
 <h3 class="anchored" data-anchor-id="model-definition">Model definition</h3>
 <p>For this example, we use the classic majority rule, which is defined as follows:</p>
-<div id="f12ff3f8" class="cell" data-execution_count="5">
+<div id="618492cb" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> majority_rule(beliefs: <span class="bu">list</span>[<span class="bu">str</span>], current_belief: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Calculate the majority belief from a list of expressed beliefs."""</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -260,7 +260,7 @@ window.Quarto = {
 <li>Below, I simply compare the user’s predicted belief with the majority of beliefs expressed in their posts during that time stamp. This is a very small <span class="math inline">\(n\)</span> size per time step, though, and can be improved</li>
 </ol></li>
 </ol>
-<div id="198435d0" class="cell" data-execution_count="6">
+<div id="947fe10e" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize belief log (for plotting)</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>belief_history <span class="op">=</span> {</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"favor"</span>: [<span class="dv">0</span>] <span class="op">*</span> <span class="bu">len</span>(bsky_net.time_steps),</span>
@@ -277,30 +277,30 @@ window.Quarto = {
 <span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>internal_beliefs: <span class="bu">dict</span>[<span class="bu">str</span>, <span class="bu">str</span>] <span class="op">=</span> {}</span>
 <span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Iterate over each time step</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step, active_users <span class="kw">in</span> bsky_net.simulate(verbose<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step, user_activity <span class="kw">in</span> bsky_net.simulate(verbose<span class="op">=</span><span class="va">False</span>):</span>
 <span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initialize new users with random beliefs</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    new_users <span class="op">=</span> <span class="bu">set</span>(active_users) <span class="op">-</span> <span class="bu">set</span>(internal_beliefs.keys())</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    new_users <span class="op">=</span> <span class="bu">set</span>(user_activity) <span class="op">-</span> <span class="bu">set</span>(internal_beliefs.keys())</span>
 <span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> user_id <span class="kw">in</span> new_users:</span>
 <span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        internal_beliefs[user_id] <span class="op">=</span> random.choice([<span class="st">"favor"</span>, <span class="st">"against"</span>])</span>
 <span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Iterate over all current users</span></span>
 <span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> did <span class="kw">in</span> internal_beliefs:</span>
 <span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="co"># If user doesn't have activity, don't update belief</span></span>
-<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> did <span class="kw">not</span> <span class="kw">in</span> active_users:</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> did <span class="kw">not</span> <span class="kw">in</span> user_activity:</span>
 <span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>            belief_history[internal_beliefs[did]][step] <span class="op">+=</span> <span class="dv">1</span>  <span class="co"># logging</span></span>
 <span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
 <span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ==== UPDATING BELIEFS ====</span></span>
 <span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get user's activity during time step -- posts observed, created, liked</span></span>
-<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        activity <span class="op">=</span> active_users[did]</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        activity <span class="op">=</span> user_activity[did]</span>
 <span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get beliefs observed by user (posted by neighbors)</span></span>
 <span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        observed_moderation_beliefs <span class="op">=</span> bsky_net.get_beliefs(</span>
 <span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>            topic<span class="op">=</span><span class="st">"moderation"</span>, records<span class="op">=</span>activity[<span class="st">"seen"</span>]</span>
 <span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>        )</span>
 <span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>        <span class="co"># User observed no beliefs -- don't update</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>        <span class="co"># User observed no expressed beliefs -- don't update</span></span>
 <span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> observed_moderation_beliefs:</span>
 <span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>            belief_history[internal_beliefs[did]][step] <span class="op">+=</span> <span class="dv">1</span>  <span class="co"># logging</span></span>
 <span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
@@ -318,7 +318,7 @@ window.Quarto = {
 <span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ==== VALIDATING BELIEFS (when possible) ====</span></span>
 <span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get beliefs expressed by user: "ground truth"</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get beliefs expressed by user -- "ground truth"</span></span>
 <span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>        expressed_moderation_beliefs: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> bsky_net.get_beliefs(</span>
 <span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>            topic<span class="op">=</span><span class="st">"moderation"</span>, records<span class="op">=</span>activity[<span class="st">"posted"</span>]</span>
 <span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>        )</span>
@@ -338,8 +338,8 @@ window.Quarto = {
 <span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Breakdown of beliefs at t=2023-05-10: {
-  "favor": 24729,
-  "against": 30107
+  "favor": 24656,
+  "against": 30180
 }</code></pre>
 </div>
 </div>
@@ -348,7 +348,7 @@ window.Quarto = {
 <section id="plotting" class="level2">
 <h2 class="anchored" data-anchor-id="plotting">Plotting</h2>
 <p>I truncated the data prior to April 10 for the plots because of how little data there was.</p>
-<div id="a0e08727" class="cell" data-execution_count="7">
+<div id="c05f4707" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>start_day <span class="op">=</span> <span class="st">"2023-04-10"</span></span>
@@ -400,7 +400,7 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<div id="03ee1dd2" class="cell" data-execution_count="8">
+<div id="dbe7ba94" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fix, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))</span>
