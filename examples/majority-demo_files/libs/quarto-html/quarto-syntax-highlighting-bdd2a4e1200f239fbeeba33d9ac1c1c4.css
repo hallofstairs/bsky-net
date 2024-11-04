@@ -1,0 +1,177 @@
+/* quarto syntax highlight colors */
+:root {
+  --quarto-hl-al-color: #ffff00;
+  --quarto-hl-an-color: #0066ff;
+  --quarto-hl-at-color: inherit;
+  --quarto-hl-bn-color: #44aa43;
+  --quarto-hl-bu-color: inherit;
+  --quarto-hl-ch-color: #049b0a;
+  --quarto-hl-co-color: #0066ff;
+  --quarto-hl-cn-color: inherit;
+  --quarto-hl-cf-color: #43a8ed;
+  --quarto-hl-dt-color: inherit;
+  --quarto-hl-dv-color: #44aa43;
+  --quarto-hl-do-color: #0066ff;
+  --quarto-hl-er-color: #ffff00;
+  --quarto-hl-ex-color: inherit;
+  --quarto-hl-fl-color: #44aa43;
+  --quarto-hl-fu-color: #ff9358;
+  --quarto-hl-im-color: inherit;
+  --quarto-hl-in-color: #0066ff;
+  --quarto-hl-kw-color: #43a8ed;
+  --quarto-hl-op-color: inherit;
+  --quarto-hl-pp-color: inherit;
+  --quarto-hl-sc-color: #049b0a;
+  --quarto-hl-ss-color: #049b0a;
+  --quarto-hl-st-color: #049b0a;
+  --quarto-hl-va-color: inherit;
+  --quarto-hl-vs-color: #049b0a;
+  --quarto-hl-wa-color: #ffff00;
+}
+
+/* other quarto variables */
+:root {
+  --quarto-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+code span.al {
+  color: #ffff00;
+  font-style: inherit;
+}
+
+code span.an {
+  color: #0066ff;
+  font-weight: bold;
+  font-style: italic;
+}
+
+code span.at {
+  font-style: inherit;
+}
+
+code span.bn {
+  color: #44aa43;
+  font-style: inherit;
+}
+
+code span.bu {
+  font-style: inherit;
+}
+
+code span.ch {
+  color: #049b0a;
+  font-style: inherit;
+}
+
+code span.co {
+  color: #0066ff;
+  font-weight: bold;
+  font-style: italic;
+}
+
+code span.cn {
+  font-style: inherit;
+}
+
+code span.cf {
+  color: #43a8ed;
+  font-weight: bold;
+  font-style: inherit;
+}
+
+code span.dt {
+  font-style: inherit;
+  text-decoration: underline;
+}
+
+code span.dv {
+  color: #44aa43;
+  font-style: inherit;
+}
+
+code span.do {
+  color: #0066ff;
+  font-style: italic;
+}
+
+code span.er {
+  color: #ffff00;
+  font-weight: bold;
+  font-style: inherit;
+}
+
+code span.ex {
+  font-style: inherit;
+}
+
+code span.fl {
+  color: #44aa43;
+  font-style: inherit;
+}
+
+code span.fu {
+  color: #ff9358;
+  font-weight: bold;
+  font-style: inherit;
+}
+
+code span.im {
+  font-style: inherit;
+}
+
+code span.in {
+  color: #0066ff;
+  font-weight: bold;
+  font-style: italic;
+}
+
+code span.kw {
+  color: #43a8ed;
+  font-weight: bold;
+  font-style: inherit;
+}
+
+code span.op {
+  font-style: inherit;
+}
+
+code span.pp {
+  font-weight: bold;
+  font-style: inherit;
+}
+
+code span.sc {
+  color: #049b0a;
+  font-style: inherit;
+}
+
+code span.ss {
+  color: #049b0a;
+  font-style: inherit;
+}
+
+code span.st {
+  color: #049b0a;
+  font-style: inherit;
+}
+
+code span.va {
+  font-style: inherit;
+}
+
+code span.vs {
+  color: #049b0a;
+  font-style: inherit;
+}
+
+code span.wa {
+  color: #ffff00;
+  font-weight: bold;
+  font-style: inherit;
+}
+
+.prevent-inlining {
+  content: "</";
+}
+
+/*# sourceMappingURL=0c4b5bf2dbfc4731a325fc94684091af.css.map */
