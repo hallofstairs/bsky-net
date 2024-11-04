@@ -23,6 +23,7 @@ Belief classification improvement will be a continuous process.
 # Imports
 import json
 import random
+import typing as t
 from collections import Counter
 
 import matplotlib.pyplot as plt
@@ -161,7 +162,7 @@ For this example, we use the classic majority rule, which is defined as follows:
 # %%
 
 
-def majority_rule(beliefs: list[str], current_belief: str) -> str:
+def majority_rule(beliefs: t.Sequence[str], current_belief: str) -> str:
     """Calculate the majority belief from a list of expressed beliefs."""
 
     counts = Counter(beliefs)
@@ -251,7 +252,7 @@ for step, user_activity in bsky_net.simulate(verbose=False):
         # ==== VALIDATING BELIEFS (when possible) ====
 
         # Get beliefs expressed by user -- "ground truth"
-        expressed_moderation_beliefs: list[str] = bsky_net.get_beliefs(
+        expressed_moderation_beliefs = bsky_net.get_beliefs(
             topic="moderation", records=activity["posted"]
         )
 

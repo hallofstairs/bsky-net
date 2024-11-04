@@ -11,9 +11,9 @@ from openai.types.shared_params.response_format_json_schema import JSONSchema
 
 T = t.TypeVar("T")
 
-ExpressedOpinion = t.Literal["favor", "against", "none"]
-InternalOpinion = t.Literal["favor", "against"]
-Label = tuple[str, ExpressedOpinion]
+ExpressedBelief = t.Literal["favor", "against", "none"]
+InternalBelief = t.Literal["favor", "against"]
+Label = tuple[str, ExpressedBelief]
 
 
 class LabeledReaction(t.TypedDict):
@@ -52,7 +52,9 @@ class BskyNet:
     def calc_time_steps(self) -> list[str]:
         return [Path(f).stem for f in sorted(os.listdir(self.path))]
 
-    def get_beliefs(self, topic: str, records: dict[str, LabeledRecord]) -> list[str]:
+    def get_beliefs(
+        self, topic: str, records: dict[str, LabeledRecord]
+    ) -> list[ExpressedBelief]:
         return [
             rec_opinion
             for rec in records.values()
