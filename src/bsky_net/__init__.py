@@ -52,9 +52,7 @@ class BskyNet:
     def calc_time_steps(self) -> list[str]:
         return [Path(f).stem for f in sorted(os.listdir(self.path))]
 
-    def get_opinions(
-        self, topic: str, records: dict[str, LabeledRecord]
-    ) -> list[ExpressedOpinion]:
+    def get_beliefs(self, topic: str, records: dict[str, LabeledRecord]) -> list[str]:
         return [
             rec_opinion
             for rec in records.values()
