@@ -9,6 +9,8 @@ __pycache__/
 data/
 stream/
 
+*.plist
+
 *.quarto_ipynb
 .jupyter_cache/
 
