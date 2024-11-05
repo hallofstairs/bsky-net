@@ -47,8 +47,9 @@ class BskyNet:
         self, verbose: bool = True
     ) -> t.Generator[tuple[int, dict[str, UserActivity]], None, None]:
         for i, time_step in enumerate(tq(self.files, active=verbose)):
-            with open(f"{self.path}/{time_step}", "r") as json_file:
-                yield i, json.load(json_file)
+            with open(f"{self.path}/{time_step}", "rb") as f:
+                with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+                    yield i, json.loads(mm.read())
 
     def _get_files(self):
         return [f for f in sorted(os.listdir(self.path)) if f.endswith(".json")]
