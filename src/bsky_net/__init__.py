@@ -38,19 +38,22 @@ class UserActivity(t.TypedDict):
 class BskyNet:
     def __init__(self, path: str) -> None:
         self.path = path
-        self.time_steps = self.calc_time_steps()
+
+        self.files = self._get_files()
+        self.time_steps = self._get_time_steps()
 
     def simulate(
         self, verbose: bool = True
     ) -> t.Generator[tuple[int, dict[str, UserActivity]], None, None]:
-        for i, time_step in enumerate(
-            tq(sorted(os.listdir(self.path)), active=verbose)
-        ):
+        for i, time_step in enumerate(tq(self.files, active=verbose)):
             with open(f"{self.path}/{time_step}", "r") as json_file:
                 yield i, json.load(json_file)
 
-    def calc_time_steps(self) -> list[str]:
-        return [Path(f).stem for f in sorted(os.listdir(self.path))]
+    def _get_files(self):
+        return [f for f in sorted(os.listdir(self.path)) if f.endswith(".json")]
+
+    def _get_time_steps(self) -> list[str]:
+        return [Path(f).stem for f in self.files]
 
     def get_beliefs(
         self, topic: str, records: dict[str, LabeledRecord]
