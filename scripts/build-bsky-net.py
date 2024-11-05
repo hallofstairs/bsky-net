@@ -22,7 +22,7 @@ follow_graph: dict[str, list[str]] = {}
 opinion_post_info: dict[str, dict] = {}
 
 # Iterate through records
-for record in records(STREAM_DIR, end_date="2023-05-10"):
+for record in records(STREAM_DIR):
     did = record["did"]
     window = truncate_timestamp(record["createdAt"], WINDOW_SIZE)
 
