@@ -1,4 +1,4 @@
-import json
+import mmap
 import os
 import sys
 import time
@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
+import ujson as json
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 
 T = t.TypeVar("T")
@@ -72,13 +73,14 @@ class BskyNet:
 class jsonl[T]:
     @classmethod
     def iter(cls, path: str) -> t.Generator[T, None, None]:
-        with open(path, "r") as f:
-            for line in f:
-                try:
-                    yield json.loads(line)
-                except json.JSONDecodeError:
-                    print(f"JSONDecodeError: {line}")
-                    continue
+        with open(path, "rb") as f:
+            with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+                for line in iter(mm.readline, b""):
+                    try:
+                        yield json.loads(line)
+                    except json.JSONDecodeError:
+                        print(f"JSONDecodeError: {line}")
+                        continue
 
 
 def records(
