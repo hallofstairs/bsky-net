@@ -162,7 +162,7 @@ For this example, we use the classic majority rule, which is defined as follows:
 # %%
 
 
-def majority_rule(beliefs: t.Sequence[str], current_belief: str) -> str:
+def majority_rule(beliefs: t.Sequence[str], current_belief: t.Optional[str]) -> str:
     """Calculate the majority belief from a list of expressed beliefs."""
 
     counts = Counter(beliefs)
@@ -172,7 +172,10 @@ def majority_rule(beliefs: t.Sequence[str], current_belief: str) -> str:
     elif counts["against"] > counts["favor"]:
         return "against"
     else:
-        return current_belief
+        if current_belief:
+            return current_belief
+        else:
+            return "none"
 
 
 # %% [markdown]
@@ -200,33 +203,53 @@ belief_history = {
     "against": [0] * len(bsky_net.time_steps),
 }
 
+true_history = {
+    "favor": [0] * len(bsky_net.time_steps),
+    "against": [0] * len(bsky_net.time_steps),
+}
+
 # Initialize accuracy log (for plotting)
 model_accuracy = {
     "correct": [0] * len(bsky_net.time_steps),
     "total": [0] * len(bsky_net.time_steps),
 }
 
+expressed_belief_history = {
+    "favor": [0] * len(bsky_net.time_steps),
+    "against": [0] * len(bsky_net.time_steps),
+    "none": [0] * len(bsky_net.time_steps),
+}
+
+topical_posts = {"favor": [], "against": [], "none": []}
+
+total_posts = [0] * len(bsky_net.time_steps)
+
 # Track belief states
 internal_beliefs: dict[str, str] = {}
 
+true_beliefs: dict[str, str] = {}
+
 # Iterate over each time step
-for step, user_activity in bsky_net.simulate(verbose=False):
+for step, user_activity in bsky_net.simulate(verbose=True):
     # Initialize new users with random beliefs
     new_users = set(user_activity) - set(internal_beliefs.keys())
-    for user_id in new_users:
-        internal_beliefs[user_id] = random.choice(["favor", "against"])
 
     # Iterate over all current users
-    for did in internal_beliefs:
+    for did in internal_beliefs.keys() | new_users:
         # If user doesn't have activity, don't update belief
         if did not in user_activity:
             belief_history[internal_beliefs[did]][step] += 1  # logging
+
+            if did in true_beliefs:
+                true_history[true_beliefs[did]][step] += 1  # logging
             continue
 
         # ==== UPDATING BELIEFS ====
 
         # Get user's activity during time step -- posts observed, created, liked
         activity = user_activity[did]
+
+        total_posts[step] += len(activity["posted"])
 
         # Get beliefs observed by user (posted by neighbors)
         observed_moderation_beliefs = bsky_net.get_beliefs(
@@ -235,11 +258,16 @@ for step, user_activity in bsky_net.simulate(verbose=False):
 
         # User observed no expressed beliefs -- don't update
         if not observed_moderation_beliefs:
+            if did in new_users:
+                continue
+
             belief_history[internal_beliefs[did]][step] += 1  # logging
+            if did in true_beliefs:
+                true_history[true_beliefs[did]][step] += 1  # logging
             continue
 
         # Get user's current internal belief
-        current_belief = internal_beliefs[did]
+        current_belief = internal_beliefs.get(did, random.choice(["favor", "against"]))
 
         # Update user's current internal belief using majority rule
         new_belief = majority_rule(observed_moderation_beliefs, current_belief)
@@ -256,15 +284,34 @@ for step, user_activity in bsky_net.simulate(verbose=False):
             topic="moderation", records=activity["posted"]
         )
 
+        for post, info in activity["posted"].items():
+            for topic, belief in info["labels"]:
+                topical_posts[belief].append(info["text"])
+
         # Check predicted belief against "ground truth" expressed belief, if possible
         if expressed_moderation_beliefs:
+            for belief in expressed_moderation_beliefs:
+                expressed_belief_history[belief][step] += 1
+
             # Use majority of expressed beliefs that time step as "ground truth"
-            true_belief = majority_rule(expressed_moderation_beliefs, current_belief)
+            true_belief = majority_rule(expressed_moderation_beliefs, None)
+            if true_belief == "none":
+                if did in true_beliefs:
+                    true_history[true_beliefs[did]][step] += 1  # logging
+                continue
+
             correct = new_belief == true_belief
+
+            # Update true belief state
+            true_beliefs[did] = true_belief
 
             # Log for plotting
             model_accuracy["correct"][step] += correct
             model_accuracy["total"][step] += 1
+
+        if did in true_beliefs:
+            true_history[true_beliefs[did]][step] += 1  # logging
+
 
 print(
     f"Breakdown of beliefs at t={time_steps[-1]}: {json.dumps(Counter(internal_beliefs.values()), indent=2)}"
@@ -290,8 +337,88 @@ model_accuracy["correct"] = model_accuracy["correct"][start_idx:]
 model_accuracy["total"] = model_accuracy["total"][start_idx:]
 belief_history["favor"] = belief_history["favor"][start_idx:]
 belief_history["against"] = belief_history["against"][start_idx:]
+true_history["favor"] = true_history["favor"][start_idx:]
+true_history["against"] = true_history["against"][start_idx:]
+expressed_belief_history["favor"] = expressed_belief_history["favor"][start_idx:]
+expressed_belief_history["against"] = expressed_belief_history["against"][start_idx:]
+expressed_belief_history["none"] = expressed_belief_history["none"][start_idx:]
+total_posts = total_posts[start_idx:]
 
-fix, ax = plt.subplots(figsize=(8, 4))
+# %%
+
+fix, ax = plt.subplots(figsize=(8, 5))
+
+total_opinions = [
+    n_favor + n_against
+    for n_favor, n_against in zip(true_history["favor"], true_history["against"])
+]
+
+history_norm = {
+    "favor": [
+        count / total_opinions[idx] if total_opinions[idx] != 0 else 0
+        for idx, count in enumerate(true_history["favor"])
+    ],
+    "against": [
+        count / total_opinions[idx] if total_opinions[idx] != 0 else 0
+        for idx, count in enumerate(true_history["against"])
+    ],
+}
+
+# Plot accuracy of belief model in predicting expressed beliefs
+ax.plot(time_steps_trunc, history_norm["favor"], label="favor", color="tab:blue")
+ax.plot(time_steps_trunc, history_norm["against"], label="against", color="tab:red")
+ax.set_xlabel("Day")
+ax.set_ylabel("Percentage")
+ax.set_title("Expressed (True) Opinion Distribution")
+ax.legend()
+ax.set_ylim(0, 1)
+ax.set_xticks(time_steps_trunc[::3])
+ax.tick_params(axis="x", rotation=45)
+
+plt.tight_layout()
+plt.show()
+
+# %%
+
+fix, ax = plt.subplots(figsize=(8, 5))
+
+expressed_pct = {
+    "favor": [
+        count / total_posts[idx] if total_posts[idx] != 0 else 0
+        for idx, count in enumerate(expressed_belief_history["favor"])
+    ],
+    "against": [
+        count / total_posts[idx] if total_posts[idx] != 0 else 0
+        for idx, count in enumerate(expressed_belief_history["against"])
+    ],
+    "none": [
+        count / total_posts[idx] if total_posts[idx] != 0 else 0
+        for idx, count in enumerate(expressed_belief_history["none"])
+    ],
+}
+
+# Plot accuracy of belief model in predicting expressed beliefs
+ax.plot(time_steps_trunc, expressed_pct["favor"], label="favor", color="tab:blue")
+ax.plot(
+    time_steps_trunc,
+    expressed_pct["against"],
+    label="against",
+    color="tab:red",
+)
+ax.plot(time_steps_trunc, expressed_pct["none"], label="none", color="tab:gray")
+ax.set_xlabel("Day")
+ax.set_ylabel("Percentage")
+ax.set_title("Percent of Total Posts Related to Moderation")
+ax.legend(title="Expressed Belief")
+ax.set_xticks(time_steps_trunc[::3])
+ax.tick_params(axis="x", rotation=45)
+
+plt.tight_layout()
+plt.show()
+
+# %%
+
+fix, ax = plt.subplots(figsize=(8, 5))
 
 total_opinions = [
     n_favor + n_against
