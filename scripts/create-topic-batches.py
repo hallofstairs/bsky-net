@@ -13,10 +13,10 @@ STREAM_PATH = "data/raw/en-stream-2023-07-01"
 LOCAL_DIR = "data/batches"
 BUCKET_NAME = "main"
 BUCKET_DIR = "bsky-net/batches"
-BATCH_DESCRIPTION = "en-moderation-topic-stance-2023-05-28-V2"
+BATCH_DESCRIPTION = "2-en-moderation-topic-stance-2023-05-28-V2"
 
-START_DATE = "2022-11-17"
-END_DATE = "2023-05-28"
+START_DATE = "2023-05-29"
+END_DATE = "2023-07-01"
 
 MODEL = "gpt-4o-mini"
 BATCH_MAX_N = 49_990

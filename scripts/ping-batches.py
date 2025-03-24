@@ -51,8 +51,10 @@ class Batches:
 
 if __name__ == "__main__":
     if Batches.in_progress():
+        print("Batch in progress, exiting.")
         exit()
 
     next_batch_idx = Batches.latest() + 1
     Batches.push(next_batch_idx)
+    print(f"Batch {next_batch_idx} pushed! Exiting.")
     exit()

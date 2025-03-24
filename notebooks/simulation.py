@@ -43,6 +43,21 @@ def random_rule(
 bsky_net = BskyNet("../data/processed/bsky-net-daily")
 time_steps = bsky_net.time_steps
 
+topical = 0
+total = 0
+
+for step, active_users in bsky_net.simulate():
+    all_posts: set[str] = set()
+
+    for did, activity in active_users.items():
+        for post, data in activity["posted"].items():
+            total += 1
+
+            if len(data["labels"]) > 0:
+                topical += 1
+
+# %%
+
 # NOTE: bsky-net currently ignores: replies, quotes, non-english posts, etc
 
 # Initialize empty belief states

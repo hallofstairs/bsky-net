@@ -44,9 +44,11 @@ class BskyNet:
         self.time_steps = self._get_time_steps()
 
     def simulate(
-        self, verbose: bool = True
+        self, stop_idx: t.Optional[int] = None, verbose: bool = False
     ) -> t.Generator[tuple[int, dict[str, UserActivity]], None, None]:
         for i, time_step in enumerate(tq(self.files, active=verbose)):
+            if stop_idx and i == stop_idx:
+                break
             with open(f"{self.path}/{time_step}", "rb") as f:
                 with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
                     yield i, json.loads(mm.read())
@@ -126,11 +128,11 @@ def tq(iterable: t.Iterable[T], active: bool = True) -> t.Generator[T, None, Non
                     (total - i - 1) / items_per_second if items_per_second > 0 else 0
                 )
                 sys.stdout.write(
-                    f"\r{i+1}/{total} ({((i+1)/total)*100:.2f}%) - {estimated_time_remaining/60:.1f}m until done"
+                    f"\r{i + 1}/{total} ({((i + 1) / total) * 100:.2f}%) - {estimated_time_remaining / 60:.1f}m until done"
                 )
                 sys.stdout.flush()
             else:
-                sys.stdout.write(f"\rProcessed: {i+1}")
+                sys.stdout.write(f"\rProcessed: {i + 1}")
                 sys.stdout.flush()
 
         yield item

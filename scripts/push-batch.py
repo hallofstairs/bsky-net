@@ -6,7 +6,7 @@ from openai import OpenAI
 
 load_dotenv()
 
-BATCH_DESCRIPTION = "en-moderation-topic-stance-2023-05-28-V2"
+BATCH_DESCRIPTION = "2-en-moderation-topic-stance-2023-05-28-V2"
 BATCH_IDX = sys.argv[1]
 
 FILE_PATH = f"data/batches/{BATCH_DESCRIPTION}/in/{BATCH_IDX}.jsonl"
