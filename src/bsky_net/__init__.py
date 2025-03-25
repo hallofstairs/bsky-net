@@ -146,10 +146,11 @@ class CidUri(t.TypedDict):
     uri: str
 
 
-Post = t.TypedDict(
-    "Post",
+ExistingPost = t.TypedDict(
+    "ExistingPost",
     {
         "$type": t.Literal["app.bsky.feed.post"],
+        "ts": int,
         "did": str,
         "uri": str,
         "text": str,
@@ -159,10 +160,22 @@ Post = t.TypedDict(
     },
 )
 
+DeletedPost = t.TypedDict(
+    "DeletedPost",
+    {
+        "$type": t.Literal["app.bsky.feed.post"],
+        "ts": int,
+        "did": str,
+        "uri": str,
+        "deleted": t.Literal[True],
+    },
+)
+
 Follow = t.TypedDict(
     "Follow",
     {
         "$type": t.Literal["app.bsky.graph.follow"],
+        "ts": int,
         "did": str,  # DID of the follower
         "uri": str,  # URI of the follow record
         "createdAt": str,  # Timestamp of the follow
@@ -174,6 +187,7 @@ Repost = t.TypedDict(
     "Repost",
     {
         "$type": t.Literal["app.bsky.feed.repost"],
+        "ts": int,
         "did": str,
         "uri": str,
         "createdAt": str,
@@ -185,6 +199,7 @@ Like = t.TypedDict(
     "Like",
     {
         "$type": t.Literal["app.bsky.feed.like"],
+        "ts": int,
         "did": str,
         "uri": str,
         "createdAt": str,
@@ -196,6 +211,7 @@ Block = t.TypedDict(
     "Block",
     {
         "$type": t.Literal["app.bsky.graph.block"],
+        "ts": int,
         "did": str,
         "uri": str,
         "createdAt": str,
@@ -207,11 +223,13 @@ Profile = t.TypedDict(
     "Profile",
     {
         "$type": t.Literal["app.bsky.actor.profile"],
+        "ts": int,
         "did": str,
         "createdAt": str,
     },
 )
 
+Post = ExistingPost | DeletedPost
 Record = Post | Follow | Repost | Like | Block | Profile
 
 
